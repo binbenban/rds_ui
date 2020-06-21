@@ -1,0 +1,296 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<div>
+    Choose a Feed (source):
+    <select name="feed" id="feed_list">
+        <option value="NEW_FEED">---Create New Feed---</option>
+        {% for feed in feeds %}
+            <option value="{{ feed['feed_id'] }}">{{ feed['feed_name'] }}</option>
+        {% endfor %}
+    </select> 
+    <br>
+    <input type="text" id="feed_table_new_feed_name" value="Feed Name">
+    <input type="text" id="feed_table_new_feed_sourcesystem" value="Feed Source System">
+    <input type="text" id="feed_table_new_feed_filetype" value="Feed File Type">
+    <input type="text" id="feed_table_new_feed_dbname" value="Feed DB Name">
+</div>
+<br>
+<div>
+    <table id="feed_table"></table>
+    <input type="button" id="feed_table_new_row" value="New Row">
+    <input type="button" id="feed_table_submit" value="Generate">
+</div>
+<br><br>
+<div>
+    Choose an data object (target):
+    <select id="data_object_list">
+        <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
+        {% for do in data_objects %}
+            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name'] }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <input type="text" id="data_object_table_new_data_object_name" value="Data Object Name">
+    <input type="text" id="data_object_table_new_data_object_dbname" value="Data Object DB Name">
+</div>
+<div>
+    <table id="data_object_table"></table>
+    <input type="button" id="data_object_table_new_row" value="New Row">
+    <input type="button" id="data_object_table_submit" value="Generate">
+</div>
+<br><br>
+<div>
+    Feed and data object attributes
+    <table id="attr_map_table"></table>
+    <input type="button" id="attr_map_table_new_row" value="New Row">
+    <input type="button" id="attr_map_table_submit" value="Generate">
+</div>
+<br><br>
+<div>
+    Generated SQL
+    <br>
+    <textarea id="sql_result" cols="120" rows="6"></textarea> 
+</div>
+
+
+<script type="text/javascript">
+    function changeValueIfEqual(element, ifValue, thenValue) {
+        if (element.value == ifValue) {
+            element.value = thenValue;
+        }
+    }
+
+</script>
+
+<script type="text/javascript">
+    var feed_table = new Tabulator("#feed_table", {
+        addRowPos:"bottom",
+        movableRows:true,
+        layout:"fitColumns",
+        placeholder:"No Data Set",
+        columns: [
+            {title:"ID", field:"feed_attribute_id", width:120},
+            {title:"Name", field:"feed_attribute_name", width:200, editor:"input"},
+            {title:"No", field:"feed_attribute_no", width:120, editor:"input"},
+            {title:"Type", field:"feed_attribute_type", width:120, editor:"input"},
+            {title:"Primary Key", field:"primary_key_ind", width:120, editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Nullable", field:"nullable_ind", width:120, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Length", field:"attribute_length", width:120, editor:"input"},
+            {title:"Precision", field:"attribute_precision", width:120, editor:"input"},
+            {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
+        ],        
+    });
+
+    var data_object_table = new Tabulator("#data_object_table", {
+        addRowPos:"bottom",
+        movableRows:true,
+        layout:"fitColumns",
+        placeholder:"No Data Set",
+        columns: [
+            {title:"Attribute ID", field:"attribute_id", width:150},
+            {title:"Attribute No", field:"attribute_no", width:150, editor:"input"},
+            {title:"Attribute Name", field:"attribute_name", width:150, editor:"input"},
+            {title:"Attribute Type", field:"attribute_type", width:150, editor:"input"},
+            {title:"Primary Key", field:"primary_key_ind", width:150, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
+        ],
+    });
+
+    var attr_map_table = new Tabulator("#attr_map_table", {
+        addRowPos:"bottom",
+        movableRows:true,
+        layout:"fitColumns",
+        placeholder:"No Data Set",
+        columns: [
+            {title:"Feed Attr ID", field:"feed_attribute_id", width:150, editor:"input"},
+            {title:"Feed Attr Name", field:"feed_attribute_name", width:150},
+            {title:"Feed Attr Type", field:"feed_attribute_type", width:150},
+            {title:"Data Object Attr ID", field:"doa_id", width:190, editor:"input"},
+            {title:"Data Object Attr Name", field:"doa_name", width:190},
+            {title:"Data Object Attr Type", field:"doa_type", width:190},
+            {title:"Transformation", field:"transform_fn", width:190, editor:"input"},
+            {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
+        ],
+        rowClick:function(e, row){
+            // update feed attribute name/type based on feed attribute id
+            // update data object attribute name/type based on data object attribute id
+            // update linking transform_fn
+            $.ajax({
+                url: '/read_one_attribute_mapping/'+"/"+row.getData().feed_attribute_id+"/"+row.getData().doa_id,
+                type: 'GET',
+            }).done(function(data) {
+                row.update({
+                    "feed_attribute_name": data["feed_attribute_name"],
+                    "feed_attribute_type": data["feed_attribute_type"],
+                    "doa_name": data["data_object_attribute_name"],
+                    "doa_type": data["data_object_attribute_type"],
+                    "transform_fn": data["transform_fn"],
+                })
+            });
+
+            // update transformation
+        },        
+    });
+
+    var ajaxConfig = {
+        method: "GET",
+        headers: {
+            "Content-type": 'application/json; charset=utf-8',
+        },
+    };
+
+    // new feed - text
+    $("#feed_table_new_feed_name").focus(function() {
+        changeValueIfEqual(this, "Feed Name", "");
+    });
+
+    $("#feed_table_new_feed_name").blur(function() {
+        changeValueIfEqual(this, "", "Feed Name");
+    });
+
+    $("#feed_table_new_feed_sourcesystem").focus(function() {
+        changeValueIfEqual(this, "Feed Source System", "");
+    });
+
+    $("#feed_table_new_feed_sourcesystem").blur(function() {
+        changeValueIfEqual(this, "", "Feed Source System");
+    });
+
+    $("#feed_table_new_feed_filetype").focus(function() {
+        changeValueIfEqual(this, "Feed File Type", "");
+    });
+
+    $("#feed_table_new_feed_filetype").blur(function() {
+        changeValueIfEqual(this, "", "Feed File Type");
+    });
+
+    $("#feed_table_new_feed_dbname").focus(function() {
+        changeValueIfEqual(this, "Feed DB Name", "");
+    });
+
+    $("#feed_table_new_feed_dbname").blur(function() {
+        changeValueIfEqual(this, "", "Feed DB Name");
+    });
+
+    // feed list - change
+    $("#feed_list").change(function() {
+        selected_value = $(this).val()
+        if (selected_value == "NEW_FEED") {
+            $("#feed_table_new_feed_name").attr("disabled", false);
+            $("#feed_table_new_feed_sourcesystem").attr("disabled", false);
+            $("#feed_table_new_feed_filetype").attr("disabled", false);
+            $("#feed_table_new_feed_dbname").attr("disabled", false);            
+            feed_table.clearData();
+        }
+        else {
+            $("#feed_table_new_feed_name").attr("disabled", true);
+            $("#feed_table_new_feed_sourcesystem").attr("disabled", true);
+            $("#feed_table_new_feed_filetype").attr("disabled", true);
+            $("#feed_table_new_feed_dbname").attr("disabled", true);
+            feed_table.setData("/read_one_feed/"+$(this).val(), {}, ajaxConfig);
+        }
+    });
+
+    // feed table - new row
+    $("#feed_table_new_row").click(function() {
+        feed_table.addRow({
+            "feed_attribute_id": "AUTO"
+        });
+    })
+
+    // feed table - generate
+    $("#feed_table_submit").click(function() {
+        $.ajax({
+            url: '/save_feed/'+$("#feed_list").val(),
+            type: 'POST',
+            data: JSON.stringify({
+                new_feed_name: $("#feed_table_new_feed_name").val(),
+                new_feed_sourcesystem: $("#feed_table_new_feed_sourcesystem").val(),
+                new_feed_filetype: $("#feed_table_new_feed_filetype").val(),
+                new_feed_dbname: $("#feed_table_new_feed_dbname").val(),
+                feed_attributes: feed_table.getData()
+            }),
+            contentType: "application/json",
+        }).done(function(data) {
+            $('#sql_result').val(data);
+        })
+    });
+    
+    // new feed - text
+    $("#data_object_table_new_data_object_name").focus(function() {
+        changeValueIfEqual(this, "Data Object Name", "");
+    });
+
+    $("#data_object_table_new_data_object_name").blur(function() {
+        changeValueIfEqual(this, "", "Data Object Name");
+    });
+
+    $("#data_object_table_new_data_object_dbname").focus(function() {
+        changeValueIfEqual(this, "Data Object DB Name", "");
+    });
+
+    $("#data_object_table_new_data_object_dbname").blur(function() {
+        changeValueIfEqual(this, "", "Data Object DB Name");
+    });
+
+    // data object list - change
+    $("#data_object_list").change(function() {
+        selected_value = $(this).val()
+        if (selected_value == "NEW_DATA_OBJECT") {
+            $("#data_object_table_new_data_object_name").attr("disabled", false);
+            $("#data_object_table_new_data_object_dbname").attr("disabled", false);
+            data_object_table.clearData();
+        }
+        else {
+            $("#data_object_table_new_data_object_name").attr("disabled", true);
+            $("#data_object_table_new_data_object_dbname").attr("disabled", true);
+            data_object_table.setData("/read_one_data_object/"+$(this).val(), {}, ajaxConfig);
+            attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + $("#feed_list").val() + "/" + $("#data_object_list").val());
+        }
+    });
+
+    // data_object table - new row
+    $("#data_object_table_new_row").click(function() {
+        data_object_table.addRow({
+            "attribute_id": "AUTO"
+        });
+    });
+
+    // data object table - generate
+    $("#data_object_table_submit").click(function() {
+        $.ajax({
+            url: '/save_data_object/'+$("#data_object_list").val(),
+            type: 'POST',
+            data: JSON.stringify({
+                new_data_object_name: $("#data_object_table_new_data_object_name").val(),
+                new_data_object_dbname: $("#data_object_table_new_data_object_dbname").val(),
+                data_object_attributes: data_object_table.getData(),
+            }),
+            contentType: "application/json"
+        }).done(function(data) {
+            $('#sql_result').val(data);
+        })
+    });
+    
+    // attr table - new row
+    $("#attr_map_table_new_row").click(function() {
+        attr_map_table.addRow({});
+    });
+
+    // attr table - generate
+    $('#attr_map_table_submit').click(function() {
+        $.ajax({
+            url: '/save_attributes',
+            type: 'POST',
+            data: JSON.stringify(attr_map_table.getData()),
+            contentType: "application/json",
+        }).done(function(data) {
+            $('#sql_result').val(data);
+        })
+    });
+
+</script>
+
+{% endblock %}
