@@ -113,15 +113,15 @@
             {title:"Transformation", field:"transform_fn", width:190, editor:"input"},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],
-        rowClick:function(e, row){
+        cellEdited:function(cell){
             // update feed attribute name/type based on feed attribute id
             // update data object attribute name/type based on data object attribute id
             // update linking transform_fn
             $.ajax({
-                url: '/read_one_attribute_mapping/'+"/"+row.getData().feed_attribute_id+"/"+row.getData().doa_id,
+                url: '/read_one_attribute_mapping/'+"/"+cell.getRow().getData().feed_attribute_id+"/"+cell.getRow().getData().doa_id,
                 type: 'GET',
             }).done(function(data) {
-                row.update({
+                cell.getRow().update({
                     "feed_attribute_name": data["feed_attribute_name"],
                     "feed_attribute_type": data["feed_attribute_type"],
                     "doa_name": data["data_object_attribute_name"],
@@ -129,9 +129,7 @@
                     "transform_fn": data["transform_fn"],
                 })
             });
-
-            // update transformation
-        },        
+        },
     });
 
     var ajaxConfig = {
