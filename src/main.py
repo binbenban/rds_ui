@@ -204,7 +204,7 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
                 where feed_id = {feed_id}
             )
             ,data_obj_attr as (
-                select 0, '', '', 0, data_object_attribute_id, attribute_no, attribute_name, attribute_name, ''
+                select 0, '', '', 0, data_object_attribute_id, attribute_no, attribute_name, attribute_type, ''
                 from odap.data_object_attribute
                 where data_object_id = {data_object_id}
             )

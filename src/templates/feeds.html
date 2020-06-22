@@ -65,6 +65,8 @@
 </script>
 
 <script type="text/javascript">
+    dbg = null;
+
     var feed_table = new Tabulator("#feed_table", {
         addRowPos:"bottom",
         movableRows:true,
@@ -114,21 +116,23 @@
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],
         cellEdited:function(cell){
-            // update feed attribute name/type based on feed attribute id
-            // update data object attribute name/type based on data object attribute id
-            // update linking transform_fn
-            $.ajax({
-                url: '/read_one_attribute_mapping/'+"/"+cell.getRow().getData().feed_attribute_id+"/"+cell.getRow().getData().doa_id,
-                type: 'GET',
-            }).done(function(data) {
-                cell.getRow().update({
-                    "feed_attribute_name": data["feed_attribute_name"],
-                    "feed_attribute_type": data["feed_attribute_type"],
-                    "doa_name": data["data_object_attribute_name"],
-                    "doa_type": data["data_object_attribute_type"],
-                    "transform_fn": data["transform_fn"],
-                })
-            });
+            // update edited row with feed attr names, types, doa names, types, transform_fn
+            // BUT only update if feed_attr_id or doa_id is edited
+            if (cell.getColumn().getDefinition()["field"] != "transform_fn") {
+                $.ajax({
+                    url: '/read_one_attribute_mapping/'+"/"+cell.getRow().getData().feed_attribute_id+"/"+cell.getRow().getData().doa_id,
+                    type: 'GET',
+                }).done(function(data) {
+                    dbg = cell;
+                    cell.getRow().update({
+                        "feed_attribute_name": data["feed_attribute_name"],
+                        "feed_attribute_type": data["feed_attribute_type"],
+                        "doa_name": data["data_object_attribute_name"],
+                        "doa_type": data["data_object_attribute_type"],
+                        "transform_fn": data["transform_fn"],
+                    })
+                });
+            }
         },
     });
 

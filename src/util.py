@@ -11,7 +11,6 @@ def read_config_file():
     with open(config_file) as stream:
         try:
             config = yaml.safe_load(stream)
-            print(config)
         except yaml.YAMLError as exc:
             print(exc)
 
