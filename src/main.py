@@ -244,10 +244,12 @@ def save_attributes():
         else:
             transform_fn = row.get("transform_fn")
             if transform_fn is None:
-                transform = ""
-            transform = transform.strip()
+                transform_fn = ""
+            transform_fn = transform_fn.strip()
             if transform_fn=="" or transform_fn==row.get("feed_attribute_name"):
                 transform_fn = None
+            else:
+                transform_fn = transform_fn.replace("'", "''")
             stmts.append(f"""
                 insert into odap.feed_attr_data_object_attr (
                     feed_attribute_id,
@@ -258,7 +260,7 @@ def save_attributes():
                     '{row.get("feed_attribute_id")}',
                     '{row.get("doa_id")}',
                     '{transform_fn}'
-                );
+                ;
             """)
     combined_stmt = "\n".join(stmts).replace("'None'", "null")
     app.logger.info(combined_stmt)

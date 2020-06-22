@@ -7,7 +7,7 @@
     <select name="feed" id="feed_list">
         <option value="NEW_FEED">---Create New Feed---</option>
         {% for feed in feeds %}
-            <option value="{{ feed['feed_id'] }}">{{ feed['feed_name'] }}</option>
+            <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
         {% endfor %}
     </select> 
     <br>
@@ -28,7 +28,7 @@
     <select id="data_object_list">
         <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
         {% for do in data_objects %}
-            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name'] }}</option>
+            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
         {% endfor %}
     </select>
     <br>
@@ -53,6 +53,7 @@
     <br>
     <textarea id="sql_result" cols="120" rows="6"></textarea> 
 </div>
+<br><br>
 
 
 <script type="text/javascript">
@@ -95,7 +96,7 @@
             {title:"Attribute No", field:"attribute_no", width:150, editor:"input"},
             {title:"Attribute Name", field:"attribute_name", width:150, editor:"input"},
             {title:"Attribute Type", field:"attribute_type", width:150, editor:"input"},
-            {title:"Primary Key", field:"primary_key_ind", width:150, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Primary Key", field:"primary_key_ind", width:150, editor:"select", editorParams:{"Y":"Y","N":"N"}},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],
     });
@@ -250,6 +251,30 @@
             $("#data_object_table_new_data_object_dbname").attr("disabled", true);
             data_object_table.setData("/read_one_data_object/"+$(this).val(), {}, ajaxConfig);
             attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + $("#feed_list").val() + "/" + $("#data_object_list").val());
+            // cnstruct json array
+            var arr = {};
+            for (var i=0; i<feed_table.getData().length; i++) {
+                var elem = feed_table.getData()[i]
+                var key = elem["feed_attribute_id"];
+                var val = elem["feed_attribute_name"] + " (" + elem["feed_attribute_id"] + ")";
+                arr[key] = val;
+            }
+            attr_map_table.getColumn("feed_attribute_id").updateDefinition({
+                "editor": "select",
+                "editorParams": arr,
+            });
+
+            arr = {};
+            for (var i=0; i<data_object_table.getData().length; i++) {
+                var elem = data_object_table.getData()[i]
+                var key = elem["doa_id"];
+                var val = elem["doa_name"] + " (" + elem["doa_id"] + ")";
+                arr[key] = val;
+            }
+            attr_map_table.getColumn("doa_id").updateDefinition({
+                "editor": "select",
+                "editorParams": arr,
+            });
         }
     });
 
