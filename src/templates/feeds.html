@@ -83,13 +83,10 @@
 <div class="w3-container">
     <h2 class="w3-text-blue">Generated Result</h2>
     <p>
-    <textarea id="sql_result" cols="120" rows="6"></textarea> 
-    </p>
+    <textarea id="sql_result" cols="120" rows="30" style="resize: none;" data-role="none"></textarea> 
+    </p> 
 </div>
 
-<div class="w3-container">
-    &nbsp;
-</div>
 
 <script type="text/javascript">
     function changeValueIfEqual(element, ifValue, thenValue) {
@@ -216,7 +213,7 @@
 
     function setDataResult(data) {
         $('#sql_result').val(data);
-        autosize($('#sql_result'));
+        // autosize($('#sql_result'));
     }
 
     // feed list - change
@@ -264,23 +261,6 @@
         })
     });
     
-    // new feed - text
-    $("#data_object_table_new_data_object_name").focus(function() {
-        changeValueIfEqual(this, "Data Object Name", "");
-    });
-
-    $("#data_object_table_new_data_object_name").blur(function() {
-        changeValueIfEqual(this, "", "Data Object Name");
-    });
-
-    $("#data_object_table_new_data_object_dbname").focus(function() {
-        changeValueIfEqual(this, "Data Object DB Name", "");
-    });
-
-    $("#data_object_table_new_data_object_dbname").blur(function() {
-        changeValueIfEqual(this, "", "Data Object DB Name");
-    });
-
     // data object list - change
     $("#data_object_list").change(function() {
         selected_value = $(this).val()
