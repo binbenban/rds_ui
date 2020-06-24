@@ -2,58 +2,62 @@
 
 {% block content %}
 
-<div>
-    Choose a Feed (source):
+<div class="w3-container">
+    <p>
+    <label>Choose a Feed or Create New:</label>
     <select name="feed" id="feed_list">
         <option value="NEW_FEED">---Create New Feed---</option>
         {% for feed in feeds %}
             <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
         {% endfor %}
     </select> 
-    <br>
-    <input type="text" id="feed_table_new_feed_name" value="Feed Name">
-    <input type="text" id="feed_table_new_feed_sourcesystem" value="Feed Source System">
-    <input type="text" id="feed_table_new_feed_filetype" value="Feed File Type">
-    <input type="text" id="feed_table_new_feed_dbname" value="Feed DB Name">
+    </p>
+    <p class="w3-left-align">
+        <label>New Feed Information</label>
+        <input type="text" id="feed_table_new_feed_name" value="Feed Name">
+        <input type="text" id="feed_table_new_feed_sourcesystem" value="Feed Source System">
+        <input type="text" id="feed_table_new_feed_filetype" value="Feed File Type">
+        <input type="text" id="feed_table_new_feed_dbname" value="Feed DB Name">
+    </p>
 </div>
-<br>
-<div>
+<div class="w3-container">  
     <table id="feed_table"></table>
     <input type="button" id="feed_table_new_row" value="New Row">
     <input type="button" id="feed_table_submit" value="Generate">
 </div>
-<br><br>
-<div>
-    Choose an data object (target):
-    <select id="data_object_list">
-        <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
-        {% for do in data_objects %}
-            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
-        {% endfor %}
-    </select>
-    <br>
-    <input type="text" id="data_object_table_new_data_object_name" value="Data Object Name">
-    <input type="text" id="data_object_table_new_data_object_dbname" value="Data Object DB Name">
+<div class="w3-container">
+    <p class="w3-left-align">
+        <label>Choose an data object (target)</label>
+        <select id="data_object_list">
+            <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
+            {% for do in data_objects %}
+                <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
+            {% endfor %}
+        </select>
+    </p>
+    <p class="w3-left-align">
+        <label>New Data Object Information</label>
+        <input type="text" id="data_object_table_new_data_object_name" value="Data Object Name">
+        <input type="text" id="data_object_table_new_data_object_dbname" value="Data Object DB Name">
+    </p>
 </div>
-<div>
+<div class="w3-container">
     <table id="data_object_table"></table>
     <input type="button" id="data_object_table_new_row" value="New Row">
     <input type="button" id="data_object_table_submit" value="Generate">
 </div>
-<br><br>
-<div>
-    Feed and data object attributes
+<div class="w3-container">
+    <p class="w3-left-align">Feed and data object attributes</p>
     <table id="attr_map_table"></table>
     <input type="button" id="attr_map_table_new_row" value="New Row">
     <input type="button" id="attr_map_table_submit" value="Generate">
 </div>
-<br><br>
-<div>
-    Generated SQL
-    <br>
-    <textarea id="sql_result" cols="120" rows="6"></textarea> 
+<div class="w3-container">
+    <p class="w3-left-align">
+        <label>Generated SQL</label>
+        <textarea id="sql_result" cols="120" rows="6"></textarea> 
+    </p>
 </div>
-<br><br>
 
 
 <script type="text/javascript">
@@ -66,8 +70,7 @@
 </script>
 
 <script type="text/javascript">
-    dbg = null;
-
+    var dbg;
     var feed_table = new Tabulator("#feed_table", {
         addRowPos:"bottom",
         movableRows:true,
@@ -124,7 +127,6 @@
                     url: '/read_one_attribute_mapping/'+"/"+cell.getRow().getData().feed_attribute_id+"/"+cell.getRow().getData().doa_id,
                     type: 'GET',
                 }).done(function(data) {
-                    dbg = cell;
                     cell.getRow().update({
                         "feed_attribute_name": data["feed_attribute_name"],
                         "feed_attribute_type": data["feed_attribute_type"],
@@ -135,6 +137,11 @@
                 });
             }
         },
+        dataLoaded:function(data) {
+            if (data.length > 0) {
+                enhanceAttrMapTableAfterSetData();
+            }
+        },
     });
 
     var ajaxConfig = {
@@ -143,6 +150,38 @@
             "Content-type": 'application/json; charset=utf-8',
         },
     };
+
+    function setDataAttrMapTable(feed_id, data_object_id) {
+        if (!isNaN(parseInt(feed_id)) && !isNaN(parseInt(data_object_id))) {
+            attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + feed_id + "/" + data_object_id);
+        }
+    }
+        
+    function enhanceAttrMapTableAfterSetData() {
+        var arr = {};
+        for (var i=0; i<data_object_table.getData().length; i++) {
+            var elem = data_object_table.getData()[i]
+            var key = elem["attribute_id"];
+            var val = elem["attribute_name"] + " (" + elem["attribute_id"] + ")";
+            arr[key] = val;
+        }
+        attr_map_table.getColumn("doa_id").updateDefinition({
+            "editor": "select",
+            "editorParams": arr
+        });
+
+        var arr2 = {};
+        for (var i=0; i<feed_table.getData().length; i++) {
+            var elem = feed_table.getData()[i]
+            var key = elem["feed_attribute_id"];
+            var val = elem["feed_attribute_name"] + " (" + elem["feed_attribute_id"] + ")";
+            arr2[key] = val;
+        }
+        attr_map_table.getColumn("feed_attribute_id").updateDefinition({
+            "editor": "select",
+            "editorParams": arr2,
+        });
+    }
 
     // new feed - text
     $("#feed_table_new_feed_name").focus(function() {
@@ -193,6 +232,7 @@
             $("#feed_table_new_feed_filetype").attr("disabled", true);
             $("#feed_table_new_feed_dbname").attr("disabled", true);
             feed_table.setData("/read_one_feed/"+$(this).val(), {}, ajaxConfig);
+            setDataAttrMapTable($(this).val(), $("#data_object_list").val());
         }
     });
 
@@ -250,31 +290,7 @@
             $("#data_object_table_new_data_object_name").attr("disabled", true);
             $("#data_object_table_new_data_object_dbname").attr("disabled", true);
             data_object_table.setData("/read_one_data_object/"+$(this).val(), {}, ajaxConfig);
-            attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + $("#feed_list").val() + "/" + $("#data_object_list").val());
-            // cnstruct json array
-            var arr = {};
-            for (var i=0; i<feed_table.getData().length; i++) {
-                var elem = feed_table.getData()[i]
-                var key = elem["feed_attribute_id"];
-                var val = elem["feed_attribute_name"] + " (" + elem["feed_attribute_id"] + ")";
-                arr[key] = val;
-            }
-            attr_map_table.getColumn("feed_attribute_id").updateDefinition({
-                "editor": "select",
-                "editorParams": arr,
-            });
-
-            arr = {};
-            for (var i=0; i<data_object_table.getData().length; i++) {
-                var elem = data_object_table.getData()[i]
-                var key = elem["doa_id"];
-                var val = elem["doa_name"] + " (" + elem["doa_id"] + ")";
-                arr[key] = val;
-            }
-            attr_map_table.getColumn("doa_id").updateDefinition({
-                "editor": "select",
-                "editorParams": arr,
-            });
+            setDataAttrMapTable($("#feed_list").val(), $(this).val());
         }
     });
 
