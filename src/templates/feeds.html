@@ -2,8 +2,11 @@
 
 {% block content %}
 
+<div class="w3-panel w3-blue">
+    <h2>Feed</h2>
+</div>
+
 <div class="w3-container">
-    <p>
     <label>Choose a Feed or Create New:</label>
     <select name="feed" id="feed_list">
         <option value="NEW_FEED">---Create New Feed---</option>
@@ -11,7 +14,6 @@
             <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
         {% endfor %}
     </select> 
-    </p>
     <p class="w3-left-align">
         <label>New Feed Information</label>
         <input type="text" id="feed_table_new_feed_name" value="Feed Name">
@@ -25,16 +27,19 @@
     <input type="button" id="feed_table_new_row" value="New Row">
     <input type="button" id="feed_table_submit" value="Generate">
 </div>
+
+<div class="w3-panel w3-blue">
+    <h2>Data Object</h2>
+</div>
+
 <div class="w3-container">
-    <p class="w3-left-align">
-        <label>Choose an data object (target)</label>
-        <select id="data_object_list">
-            <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
-            {% for do in data_objects %}
-                <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
-            {% endfor %}
-        </select>
-    </p>
+    <label>Choose an data object (target)</label>
+    <select id="data_object_list">
+        <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
+        {% for do in data_objects %}
+            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
+        {% endfor %}
+    </select>
     <p class="w3-left-align">
         <label>New Data Object Information</label>
         <input type="text" id="data_object_table_new_data_object_name" value="Data Object Name">
@@ -46,17 +51,23 @@
     <input type="button" id="data_object_table_new_row" value="New Row">
     <input type="button" id="data_object_table_submit" value="Generate">
 </div>
+
+<div class="w3-panel w3-blue">
+    <h2>Attribute Mapping</h2>
+</div>
 <div class="w3-container">
     <p class="w3-left-align">Feed and data object attributes</p>
     <table id="attr_map_table"></table>
     <input type="button" id="attr_map_table_new_row" value="New Row">
     <input type="button" id="attr_map_table_submit" value="Generate">
 </div>
+
+<div class="w3-panel w3-blue">
+    <h2>Generated Result</h2>
+</div>
+
 <div class="w3-container">
-    <p class="w3-left-align">
-        <label>Generated SQL</label>
-        <textarea id="sql_result" cols="120" rows="6"></textarea> 
-    </p>
+    <textarea id="sql_result" cols="120" rows="6"></textarea> 
 </div>
 
 
