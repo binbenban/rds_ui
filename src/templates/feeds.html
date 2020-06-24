@@ -2,74 +2,94 @@
 
 {% block content %}
 
-<div class="w3-panel w3-blue">
-    <h2>Feed</h2>
-</div>
-
 <div class="w3-container">
+    <h2 class="w3-text-blue">Feed</h2>
+    <p>
     <label>Choose a Feed or Create New:</label>
-    <select name="feed" id="feed_list">
+    <select name="feed" class="w3-select w3-border" id="feed_list">
         <option value="NEW_FEED">---Create New Feed---</option>
         {% for feed in feeds %}
-            <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
+        <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
         {% endfor %}
-    </select> 
-    <p class="w3-left-align">
-        <label>New Feed Information</label>
-        <input type="text" id="feed_table_new_feed_name" value="Feed Name">
-        <input type="text" id="feed_table_new_feed_sourcesystem" value="Feed Source System">
-        <input type="text" id="feed_table_new_feed_filetype" value="Feed File Type">
-        <input type="text" id="feed_table_new_feed_dbname" value="Feed DB Name">
+    </select>
     </p>
-</div>
-<div class="w3-container">  
-    <table id="feed_table"></table>
-    <input type="button" id="feed_table_new_row" value="New Row">
-    <input type="button" id="feed_table_submit" value="Generate">
-</div>
-
-<div class="w3-panel w3-blue">
-    <h2>Data Object</h2>
+    <p>
+    <div class="w3-quarter">
+        <input class="w3-input w3-border" type="text" id="feed_table_new_feed_name" placeholder="New Feed Name">
+    </div>
+    <div class="w3-quarter">
+        <input class="w3-input w3-border" type="text" id="feed_table_new_feed_sourcesystem" placeholder="New Feed Source System">
+    </div>
+    <div class="w3-quarter">
+        <input class="w3-input w3-border" type="text" id="feed_table_new_feed_filetype" placeholder="New Feed File Type">
+    </div>
+    <div class="w3-quarter">
+        <input class="w3-input w3-border" type="text" id="feed_table_new_feed_dbname" placeholder="New Feed DB Name">
+    </div>
+    </p>
 </div>
 
 <div class="w3-container">
+    <p>
+    <table id="feed_table" class="w3-table"></table>
+    </p>
+    <p>
+    <input type="button" class="w3-btn w3-blue" id="feed_table_new_row" value="New Row">
+    <input type="button" class="w3-btn w3-blue" id="feed_table_submit" value="Generate">
+    </p>
+</div>
+
+<div class="w3-container">
+    <h2 class="w3-text-blue">Data Object</h2>
+    <p>
     <label>Choose an data object (target)</label>
-    <select id="data_object_list">
+    <select id="data_object_list" class="w3-select w3-border">
         <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
         {% for do in data_objects %}
             <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
         {% endfor %}
     </select>
-    <p class="w3-left-align">
-        <label>New Data Object Information</label>
-        <input type="text" id="data_object_table_new_data_object_name" value="Data Object Name">
-        <input type="text" id="data_object_table_new_data_object_dbname" value="Data Object DB Name">
+    </p>
+    <p>
+    <div class="w3-half">
+        <input class="w3-input w3-border" type="text" id="data_object_table_new_data_object_name" placeholder="New Data Object Name">
+    </div>
+    <div class="w3-half">
+        <input class="w3-input w3-border" type="text" id="data_object_table_new_data_object_dbname" placeholder="New Data Object DB Name">
+    </div>
     </p>
 </div>
 <div class="w3-container">
+    <p>
     <table id="data_object_table"></table>
-    <input type="button" id="data_object_table_new_row" value="New Row">
-    <input type="button" id="data_object_table_submit" value="Generate">
+    </p>
+    <p>
+    <input type="button" class="w3-btn w3-blue" id="data_object_table_new_row" value="New Row">
+    <input type="button" class="w3-btn w3-blue" id="data_object_table_submit" value="Generate">
+    </p>
 </div>
 
-<div class="w3-panel w3-blue">
-    <h2>Attribute Mapping</h2>
-</div>
 <div class="w3-container">
-    <p class="w3-left-align">Feed and data object attributes</p>
+    <h2 class="w3-text-blue">Attribute Mapping</h2>
+    <p>
     <table id="attr_map_table"></table>
-    <input type="button" id="attr_map_table_new_row" value="New Row">
-    <input type="button" id="attr_map_table_submit" value="Generate">
-</div>
-
-<div class="w3-panel w3-blue">
-    <h2>Generated Result</h2>
+    </p>
+    <p>
+    <input type="button" class="w3-btn w3-blue" id="attr_map_table_new_row" value="New Row">
+    <input type="button" class="w3-btn w3-blue" id="attr_map_table_submit" value="Generate">
+    </p>
 </div>
 
 <div class="w3-container">
+    <h2 class="w3-text-blue">Generated Result</h2>
+    <p>
     <textarea id="sql_result" cols="120" rows="6"></textarea> 
+    </p>
 </div>
 
+<div class="w3-container">
+    &nbsp;
+</div>
 
 <script type="text/javascript">
     function changeValueIfEqual(element, ifValue, thenValue) {
@@ -193,39 +213,6 @@
             "editorParams": arr2,
         });
     }
-
-    // new feed - text
-    $("#feed_table_new_feed_name").focus(function() {
-        changeValueIfEqual(this, "Feed Name", "");
-    });
-
-    $("#feed_table_new_feed_name").blur(function() {
-        changeValueIfEqual(this, "", "Feed Name");
-    });
-
-    $("#feed_table_new_feed_sourcesystem").focus(function() {
-        changeValueIfEqual(this, "Feed Source System", "");
-    });
-
-    $("#feed_table_new_feed_sourcesystem").blur(function() {
-        changeValueIfEqual(this, "", "Feed Source System");
-    });
-
-    $("#feed_table_new_feed_filetype").focus(function() {
-        changeValueIfEqual(this, "Feed File Type", "");
-    });
-
-    $("#feed_table_new_feed_filetype").blur(function() {
-        changeValueIfEqual(this, "", "Feed File Type");
-    });
-
-    $("#feed_table_new_feed_dbname").focus(function() {
-        changeValueIfEqual(this, "Feed DB Name", "");
-    });
-
-    $("#feed_table_new_feed_dbname").blur(function() {
-        changeValueIfEqual(this, "", "Feed DB Name");
-    });
 
     // feed list - change
     $("#feed_list").change(function() {
