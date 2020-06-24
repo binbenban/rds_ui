@@ -214,6 +214,11 @@
         });
     }
 
+    function setDataResult(data) {
+        $('#sql_result').val(data);
+        autosize($('#sql_result'));
+    }
+
     // feed list - change
     $("#feed_list").change(function() {
         selected_value = $(this).val()
@@ -255,7 +260,7 @@
             }),
             contentType: "application/json",
         }).done(function(data) {
-            $('#sql_result').val(data);
+            setDataResult(data);
         })
     });
     
@@ -311,7 +316,7 @@
             }),
             contentType: "application/json"
         }).done(function(data) {
-            $('#sql_result').val(data);
+            setDataResult(data);
         })
     });
     
@@ -328,7 +333,7 @@
             data: JSON.stringify(attr_map_table.getData()),
             contentType: "application/json",
         }).done(function(data) {
-            $('#sql_result').val(data);
+            setDataResult(data);
         })
     });
 
