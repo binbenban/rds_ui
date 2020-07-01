@@ -113,6 +113,9 @@
             {title:"Nullable", field:"nullable_ind", width:120, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
             {title:"Length", field:"attribute_length", width:120, editor:"input"},
             {title:"Precision", field:"attribute_precision", width:120, editor:"input"},
+            {title:"Nested Type", field:"nested_attribute_type", width:160, editor:"input"},
+            {title:"Nested Path", field:"nested_attribute_path", width:250, editor:"input"},
+            {title:"Nested level", field:"nested_level", width:80, editor:"input"},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],        
     });

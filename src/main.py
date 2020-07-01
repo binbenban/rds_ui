@@ -63,7 +63,8 @@ def read_one_feed(feed_id):
     with db_connect() as conn:
         curs = conn.cursor()
         stmt = f"""
-            select feed_attribute_id, attribute_name, attribute_type, attribute_no, primary_key_ind, nullable_ind, attribute_length, attribute_precision
+            select feed_attribute_id, attribute_name, attribute_type, attribute_no, primary_key_ind, nullable_ind, attribute_length, attribute_precision,
+            nested_attribute_type, nested_attribute_path, nested_level
             from odap.feed_attribute
             where feed_id = {feed_id}
             order by attribute_no;
@@ -80,6 +81,9 @@ def read_one_feed(feed_id):
                 "nullable_ind": fa[5],
                 "attribute_length": fa[6],
                 "attribute_precision": fa[7],
+                "nested_attribute_type": fa[8],
+                "nested_attribute_path": fa[9],
+                "nested_level": fa[10],
             })
         return flask.jsonify(res)
 
@@ -314,7 +318,10 @@ def save_feed(feed_id):
                     primary_key_ind,
                     nullable_ind,
                     attribute_length,
-                    attribute_precision
+                    attribute_precision,
+                    nested_attribute_type,
+                    nested_attribute_path,
+                    nested_level
                 )
                 select
                     max(feed_attribute_id)+1,
@@ -326,7 +333,10 @@ def save_feed(feed_id):
                     '{row.get("primary_key_ind")}',
                     '{row.get("nullable_ind")}',
                     '{row.get("attribute_length")}',
-                    '{row.get("attribute_precision")}'
+                    '{row.get("attribute_precision")}',
+                    '{row.get("nested_attribute_type")}',
+                    '{row.get("nested_attribute_path")}',
+                    '{row.get("nested_level")}'
                 from odap.feed_attribute fa
                 cross join (
                     select feed_id from odap.feed f
