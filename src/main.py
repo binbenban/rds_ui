@@ -237,10 +237,41 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
         return flask.jsonify(attr)
 
 
-@app.route("/save_attributes", methods=["POST"])
-def save_attributes():
+@app.route("/read_table_transformation_by_feed_id_data_object_id/<feed_id>/<data_object_id>")
+def read_table_transformation_by_feed_id_data_object_id(feed_id, data_object_id):
+    with db_connect() as conn:
+        curs = conn.cursor()
+        stmt = f"""
+            select transform_sql_query, src_filter_sql
+            from odap.feed_data_object
+            where feed_id = {feed_id} and data_object_id = {data_object_id}
+            limit 1
+        """
+        app.logger.info(stmt)
+        curs.execute(stmt)
+        do = {}
+        for res in curs.fetchall():
+            do["transform_sql_query"] = res[0]
+            do["src_filter_sql"] = res[1]
+            break
+        return flask.jsonify(do)
+
+
+@app.route("/save_transformation/<feed_id>/<data_object_id>", methods=["POST"])
+def save_transformation(feed_id, data_object_id):
     stmts = []
-    for row in request.json:
+    data = request.json
+    attribute_mappings = data.get("attribute_mappings")
+    src_filter_sql = data.get("src_filter_sql")
+    transform_sql_query = data.get("transform_sql_query")
+    print(request.json)
+
+    stmts.append(f"""
+    insert into odap.feed_data_object (feed_id,data_object_id,transform_sql_query,src_filter_sql)
+    values ({feed_id}, {data_object_id}, '{None if not transform_sql_query else transform_sql_query}','{None if not src_filter_sql else src_filter_sql}');
+    """)
+
+    for row in attribute_mappings:
         if not (row["feed_attribute_id"] and row["doa_id"]):
             stmts.append(f"""
                 -- ignoring {row} as it's not valid

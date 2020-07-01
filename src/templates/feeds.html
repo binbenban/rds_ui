@@ -76,6 +76,12 @@
     </p>
     <p>
     <input type="button" class="w3-btn w3-blue" id="attr_map_table_new_row" value="New Row">
+    </p>
+    <p>
+    <textarea id="attr_mapping_src_filter" cols="120" rows="3" style="resize: none;" placeholder="source filter"></textarea> 
+    <textarea id="attr_mapping_table_transformation" cols="120" rows="6" style="resize: none;" placeholder="table level transformation"></textarea> 
+    </p>
+    <p>
     <input type="button" class="w3-btn w3-blue" id="attr_map_table_submit" value="Generate">
     </p>
 </div>
@@ -185,6 +191,15 @@
     function setDataAttrMapTable(feed_id, data_object_id) {
         if (!isNaN(parseInt(feed_id)) && !isNaN(parseInt(data_object_id))) {
             attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + feed_id + "/" + data_object_id);
+
+            // TODO also read the feed_data_object level mapping into a separate textbox
+            $.ajax({
+                url: '/read_table_transformation_by_feed_id_data_object_id/' + feed_id + "/" + data_object_id,
+                type: 'GET',
+            }).done(function(data) {
+                $('#attr_mapping_table_transformation').val(data["transform_sql_query"]);
+                $('#attr_mapping_src_filter').val(data["src_filter_sql"]);
+            });
         }
     }
         
@@ -311,9 +326,13 @@
     // attr table - generate
     $('#attr_map_table_submit').click(function() {
         $.ajax({
-            url: '/save_attributes',
+            url: '/save_transformation/'+$("#feed_list").val()+"/"+$("#data_object_list").val(),
             type: 'POST',
-            data: JSON.stringify(attr_map_table.getData()),
+            data: JSON.stringify({
+                attribute_mappings: attr_map_table.getData(),
+                src_filter_sql: $("#attr_mapping_src_filter").val(),
+                transform_sql_query: $("#attr_mapping_table_transformation").val()
+            }),
             contentType: "application/json",
         }).done(function(data) {
             setDataResult(data);
