@@ -333,7 +333,7 @@ def save_feed(feed_id):
                     '{row.get("primary_key_ind")}',
                     '{row.get("nullable_ind")}',
                     '{row.get("attribute_length")}',
-                    '{row.get("attribute_precision")}',
+                    '{"None" if not row.get("attribute_precision") else row.get("attribute_precision")}',
                     '{row.get("nested_attribute_type")}',
                     '{row.get("nested_attribute_path")}',
                     '{row.get("nested_level")}'
