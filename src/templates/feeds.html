@@ -9,7 +9,7 @@
     <select name="feed" class="w3-select w3-border" id="feed_list">
         <option value="NEW_FEED">---Create New Feed---</option>
         {% for feed in feeds %}
-        <option value="{{ feed['feed_id'] }}">{{feed['feed_name']}} ({{feed['db_name']}})</option>
+        <option value="{{ feed['FEED_ID'] }}">{{feed['FEED_NAME']}} ({{feed['DB_NAME']}})</option>
         {% endfor %}
     </select>
     </p>
@@ -46,7 +46,7 @@
     <select id="data_object_list" class="w3-select w3-border">
         <option value="NEW_DATA_OBJECT">---Create New Data Object---</option>
         {% for do in data_objects %}
-            <option value="{{ do['data_object_id'] }}">{{ do['data_object_name']}} ({{do['tgt_db_name']}})</option>
+            <option value="{{ do['DATA_OBJECT_ID'] }}">{{ do['DATA_OBJECT_NAME']}} ({{do['TGT_DB_NAME']}})</option>
         {% endfor %}
     </select>
     </p>
@@ -111,17 +111,17 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"ID", field:"feed_attribute_id", width:120},
-            {title:"Name", field:"feed_attribute_name", width:200, editor:"input"},
-            {title:"No", field:"feed_attribute_no", width:120, editor:"input"},
-            {title:"Type", field:"feed_attribute_type", width:120, editor:"input"},
-            {title:"Primary Key", field:"primary_key_ind", width:120, editor:"select", editorParams:{"Y":"Y","N":"N"}},
-            {title:"Nullable", field:"nullable_ind", width:120, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
-            {title:"Length", field:"attribute_length", width:120, editor:"input"},
-            {title:"Precision", field:"attribute_precision", width:120, editor:"input"},
-            {title:"Nested Type", field:"nested_attribute_type", width:160, editor:"input"},
-            {title:"Nested Path", field:"nested_attribute_path", width:250, editor:"input"},
-            {title:"Nested level", field:"nested_level", width:80, editor:"input"},
+            {title:"ID", field:"FEED_ATTRIBUTE_ID", width:120},
+            {title:"Name", field:"ATTRIBUTE_NAME", width:200, editor:"input"},
+            {title:"No", field:"ATTRIBUTE_NO", width:120, editor:"input"},
+            {title:"Type", field:"ATTRIBUTE_TYPE", width:120, editor:"input"},
+            {title:"Primary Key", field:"PRIMARY_KEY_IND", width:120, editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Nullable", field:"NULLABLE_IND", width:120, editor:"input", editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Length", field:"ATTRIBUTE_LENGTH", width:120, editor:"input"},
+            {title:"Precision", field:"ATTRIBUTE_PRECISION", width:120, editor:"input"},
+            {title:"Nested Type", field:"NESTED_ATTRIBUTE_TYPE", width:160, editor:"input"},
+            {title:"Nested Path", field:"NESTED_ATTRIBUTE_PATH", width:250, editor:"input"},
+            {title:"Nested level", field:"NESTED_LEVEL", width:80, editor:"input"},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],        
     });
@@ -132,11 +132,11 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"Attribute ID", field:"attribute_id", width:150},
-            {title:"Attribute No", field:"attribute_no", width:150, editor:"input"},
-            {title:"Attribute Name", field:"attribute_name", width:150, editor:"input"},
-            {title:"Attribute Type", field:"attribute_type", width:150, editor:"input"},
-            {title:"Primary Key", field:"primary_key_ind", width:150, editor:"select", editorParams:{"Y":"Y","N":"N"}},
+            {title:"Attribute ID", field:"DATA_OBJECT_ATTRIBUTE_ID", width:150},
+            {title:"Attribute No", field:"ATTRIBUTE_NO", width:150, editor:"input"},
+            {title:"Attribute Name", field:"ATTRIBUTE_NAME", width:150, editor:"input"},
+            {title:"Attribute Type", field:"ATTRIBUTE_TYPE", width:150, editor:"input"},
+            {title:"Primary Key", field:"PRIMARY_KEY_IND", width:150, editor:"select", editorParams:{"Y":"Y","N":"N"}},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],
     });
@@ -147,35 +147,46 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"Feed Attr ID", field:"feed_attribute_id", width:150, editor:"input"},
-            {title:"Feed Attr Name", field:"feed_attribute_name", width:150},
-            {title:"Feed Attr Type", field:"feed_attribute_type", width:150},
-            {title:"Data Object Attr ID", field:"doa_id", width:190, editor:"input"},
-            {title:"Data Object Attr Name", field:"doa_name", width:190},
-            {title:"Data Object Attr Type", field:"doa_type", width:190},
-            {title:"Transformation", field:"transform_fn", width:190, editor:"input"},
+            {title:"Feed Attr ID", field:"FEED_ATTRIBUTE_ID", width:150},
+            {title:"Feed Attr Name", field:"FEED_ATTRIBUTE_NAME", width:150, editor:"input"},
+            {title:"Feed Attr Type", field:"FEED_ATTRIBUTE_TYPE", width:150},
+            {title:"Data Object Attr ID", field:"DATA_OBJECT_ATTRIBUTE_ID", width:190},
+            {title:"Data Object Attr Name", field:"DATA_OBJECT_ATTRIBUTE_NAME", width:190, editor:"input"},
+            {title:"Data Object Attr Type", field:"DATA_OBJECT_ATTRIBUTE_TYPE", width:190},
+            {title:"Transformation", field:"TRANSFORM_FN", width:190, editor:"input"},
             {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
         ],
-        cellEdited:function(cell){
+        cellEdited:function(cell) {
             // update edited row with feed attr names, types, doa names, types, transform_fn
             // BUT only update if feed_attr_id or doa_id is edited
-            if (cell.getColumn().getDefinition()["field"] != "transform_fn") {
+            if (cell.getColumn().getDefinition()["field"] != "TRANSFORM_FN") {
                 $.ajax({
-                    url: '/read_one_attribute_mapping/'+"/"+cell.getRow().getData().feed_attribute_id+"/"+cell.getRow().getData().doa_id,
+                    url: '/read_one_feed_attribute/'+$('#feed_list').val()+"/"+cell.getRow().getData().FEED_ATTRIBUTE_NAME,
                     type: 'GET',
                 }).done(function(data) {
                     cell.getRow().update({
-                        "feed_attribute_name": data["feed_attribute_name"],
-                        "feed_attribute_type": data["feed_attribute_type"],
-                        "doa_name": data["data_object_attribute_name"],
-                        "doa_type": data["data_object_attribute_type"],
-                        "transform_fn": data["transform_fn"],
+                        "FEED_ATTRIBUTE_ID": data["FEED_ATTRIBUTE_ID"],
+                        "FEED_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
+                        "FEED_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
                     })
                 });
+
+                $.ajax({
+                    url: '/read_one_data_object_attribute/'+$('#data_object_list').val()+"/"+cell.getRow().getData().DATA_OBJECT_ATTRIBUTE_NAME,
+                    type: 'GET',
+                }).done(function(data) {
+                    cell.getRow().update({
+                        "DATA_OBJECT_ATTRIBUTE_ID": data["DATA_OBJECT_ATTRIBUTE_ID"],
+                        "DATA_OBJECT_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
+                        "DATA_OBJECT_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
+                    })
+                });
+
             }
         },
         dataLoaded:function(data) {
             if (data.length > 0) {
+                // enable dropdown list on certain columns for selection
                 enhanceAttrMapTableAfterSetData();
             }
         },
@@ -189,17 +200,17 @@
     };
 
     function setDataAttrMapTable(feed_id, data_object_id) {
-        if (!isNaN(parseInt(feed_id)) && !isNaN(parseInt(data_object_id))) {
+        if (!feed_id.includes("NEW_") && !data_object_id.includes("NEW_")) {
             attr_map_table.setData("read_attributes_by_feed_id_data_object_id/" + feed_id + "/" + data_object_id);
 
             // TODO also read the feed_data_object level mapping into a separate textbox
-            $.ajax({
-                url: '/read_table_transformation_by_feed_id_data_object_id/' + feed_id + "/" + data_object_id,
-                type: 'GET',
-            }).done(function(data) {
-                $('#attr_mapping_table_transformation').val(data["transform_sql_query"]);
-                $('#attr_mapping_src_filter').val(data["src_filter_sql"]);
-            });
+            // $.ajax({
+            //     url: '/read_table_transformation_by_feed_id_data_object_id/' + feed_id + "/" + data_object_id,
+            //     type: 'GET',
+            // }).done(function(data) {
+            //     $('#attr_mapping_table_transformation').val(data["transform_sql_query"]);
+            //     $('#attr_mapping_src_filter').val(data["src_filter_sql"]);
+            // });
         }
     }
         
@@ -207,11 +218,11 @@
         var arr = {};
         for (var i=0; i<data_object_table.getData().length; i++) {
             var elem = data_object_table.getData()[i]
-            var key = elem["attribute_id"];
-            var val = elem["attribute_name"] + " (" + elem["attribute_id"] + ")";
+            var key = elem["ATTRIBUTE_NAME"];
+            var val = elem["ATTRIBUTE_NAME"];
             arr[key] = val;
         }
-        attr_map_table.getColumn("doa_id").updateDefinition({
+        attr_map_table.getColumn("DATA_OBJECT_ATTRIBUTE_NAME").updateDefinition({
             "editor": "select",
             "editorParams": arr
         });
@@ -219,11 +230,11 @@
         var arr2 = {};
         for (var i=0; i<feed_table.getData().length; i++) {
             var elem = feed_table.getData()[i]
-            var key = elem["feed_attribute_id"];
-            var val = elem["feed_attribute_name"] + " (" + elem["feed_attribute_id"] + ")";
+            var key = elem["ATTRIBUTE_NAME"];
+            var val = elem["ATTRIBUTE_NAME"];
             arr2[key] = val;
         }
-        attr_map_table.getColumn("feed_attribute_id").updateDefinition({
+        attr_map_table.getColumn("FEED_ATTRIBUTE_NAME").updateDefinition({
             "editor": "select",
             "editorParams": arr2,
         });
@@ -249,7 +260,7 @@
             $("#feed_table_new_feed_sourcesystem").attr("disabled", true);
             $("#feed_table_new_feed_filetype").attr("disabled", true);
             $("#feed_table_new_feed_dbname").attr("disabled", true);
-            feed_table.setData("/read_one_feed/"+$(this).val(), {}, ajaxConfig);
+            feed_table.setData("/read_feed_attributes_by_feed_id/"+$(this).val(), {}, ajaxConfig);
             setDataAttrMapTable($(this).val(), $("#data_object_list").val());
         }
     });
@@ -290,7 +301,7 @@
         else {
             $("#data_object_table_new_data_object_name").attr("disabled", true);
             $("#data_object_table_new_data_object_dbname").attr("disabled", true);
-            data_object_table.setData("/read_one_data_object/"+$(this).val(), {}, ajaxConfig);
+            data_object_table.setData("/read_data_object_attributes_by_data_object_id/"+$(this).val(), {}, ajaxConfig);
             setDataAttrMapTable($("#feed_list").val(), $(this).val());
         }
     });
