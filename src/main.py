@@ -1,72 +1,14 @@
 import flask
 from flask import Flask, request
+
 # import psycopg2
 
 import util
+import yaml_reader
+
 
 app = Flask(__name__)
-
-
-FEEDS = None
-DATA_OBJECTS = None
-FEED_ATTRIBUTES = None
-DATA_OBJECT_ATTRIBUTES = None
-FEED_ATTR_DATA_OBJECT_ATTR = None
-FEED_DATA_OBJECTS = None
-
-
-def _read_all_feeds():
-    global FEEDS
-    app.logger.info("reading all feeds from yaml")
-    if not FEEDS:
-        app.logger.info("...no cache. reading from yaml")
-        FEEDS = _read_from_yaml("feed", ["SOURCE_SYSTEM", "FEED_NAME"])
-    return FEEDS
-
-
-def _read_all_data_objects():
-    global DATA_OBJECTS
-    app.logger.info("reading all data objects from yaml")
-    if not DATA_OBJECTS:
-        app.logger.info("...no cache. reading from yaml")
-        DATA_OBJECTS = _read_from_yaml("data_object", ["DATA_OBJECT_NAME", "TGT_DB_NAME"])
-    return DATA_OBJECTS
-
-
-def _read_all_feed_attributes():
-    global FEED_ATTRIBUTES
-    app.logger.info("reading all feed attributes from yaml")
-    if not FEED_ATTRIBUTES:
-        app.logger.info("...no cache. reading from yaml")
-        FEED_ATTRIBUTES = _read_from_yaml("feed_attribute", ["FEED_ID", "ATTRIBUTE_NAME"])
-    return FEED_ATTRIBUTES
-
-
-def _read_all_data_object_attributes():
-    global DATA_OBJECT_ATTRIBUTES
-    app.logger.info("reading all data object attributes from yaml")
-    if not DATA_OBJECT_ATTRIBUTES:
-        app.logger.info("...no cache. reading from yaml")
-        DATA_OBJECT_ATTRIBUTES = _read_from_yaml("data_object_attribute", ["DATA_OBJECT_ID", "ATTRIBUTE_NAME"])
-    return DATA_OBJECT_ATTRIBUTES
-
-
-def _read_all_feed_attr_data_object_attr():
-    global FEED_ATTR_DATA_OBJECT_ATTR
-    app.logger.info("reading all feed attr data object attr from yaml")
-    if not FEED_ATTR_DATA_OBJECT_ATTR:
-        app.logger.info("...no cache. reading from yaml")
-        FEED_ATTR_DATA_OBJECT_ATTR = _read_from_yaml("feed_attr_data_object_attr", ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"])
-    return FEED_ATTR_DATA_OBJECT_ATTR
-
-
-def _read_all_feed_data_objects():
-    global FEED_DATA_OBJECTS
-    app.logger.info("reading all feed data objects")
-    if not FEED_DATA_OBJECTS:
-        app.logger.info("...no cache. reading from yaml")
-        FEED_DATA_OBJECTS = _read_from_yaml("feed_data_object", ["FEED_ID", "DATA_OBJECT_ID"])
-    return FEED_DATA_OBJECTS
+rd = yaml_reader.Reader()
 
 
 @app.route("/")
@@ -74,68 +16,28 @@ def landing():
     return flask.render_template(
         "feeds.html",
         title="RDS Visualizer",
-        feeds=_read_all_feeds(),
-        data_objects=_read_all_data_objects()
+        feeds=rd.feeds.entries,
+        data_objects=rd.data_objects.entries,
     )
-
-
-def _read_from_yaml(
-    file_name: str, key_attributes: list
-):
-    res = []
-    key_name = f"{file_name}_ID".upper()
-
-    from_yaml = util.read_metadata_yaml(file_name)
-    for r in from_yaml['data_object']['data_records']:
-        row = r['row']
-        record = {}
-        record[key_name] = {}
-        for k in key_attributes:
-            if isinstance(row[k], dict):
-                for key, val in row[k].items():
-                    record[key_name][key] = val
-            else:
-                record[key_name][k] = row[k]
-
-        for k, v in row.items():
-            record[k] = v
-        res.append(record)
-    return res
-
-
-def _read_feed_attributes_by_feed_id(feed_id: str):
-    res = []
-    for x in _read_all_feed_attributes():
-        if x["FEED_ID"] == eval(feed_id):
-            res.append(x)
-    res.sort(key=lambda x: x["ATTRIBUTE_NO"])
-    return res
 
 
 @app.route("/read_feed_attributes_by_feed_id/<feed_id>")
 def read_feed_attributes_by_feed_id(feed_id):
-    res = _read_feed_attributes_by_feed_id(feed_id)
+    res = rd.read_feed_attributes_by_feed_id(eval(feed_id))
     return flask.jsonify(res)
-    
-
-def _read_data_object_attributes_by_data_object_id(data_object_id: str):
-    res = []
-    for x in _read_all_data_object_attributes():
-        if x["DATA_OBJECT_ID"] == eval(data_object_id):
-            res.append(x)
-    res.sort(key=lambda x: x["ATTRIBUTE_NO"])
-    return res
 
 
 @app.route("/read_data_object_attributes_by_data_object_id/<data_object_id>")
 def read_data_object_attributes_by_data_object_id(data_object_id):
-    res = _read_data_object_attributes_by_data_object_id(data_object_id)
+    res = rd.read_data_object_attributes_by_data_object_id(
+        eval(data_object_id)
+    )
     return flask.jsonify(res)
 
 
 @app.route("/read_one_feed_attribute/<feed_id>/<attribute_name>")
 def read_one_feed_attribute(feed_id, attribute_name):
-    for fa in _read_feed_attributes_by_feed_id(feed_id):
+    for fa in rd.read_feed_attributes_by_feed_id(eval(feed_id)):
         if fa["ATTRIBUTE_NAME"] == attribute_name:
             return fa
     return {}
@@ -143,27 +45,33 @@ def read_one_feed_attribute(feed_id, attribute_name):
 
 @app.route("/read_one_data_object_attribute/<data_object_id>/<attribute_name>")
 def read_one_data_object_attribute(data_object_id, attribute_name):
-    for doa in _read_data_object_attributes_by_data_object_id(data_object_id):
+    for doa in rd.read_data_object_attributes_by_data_object_id(
+        eval(data_object_id)
+    ):
         if doa["ATTRIBUTE_NAME"] == attribute_name:
             return doa
     return {}
 
 
-
 @app.route("/read_attributes_by_feed_id_data_object_id/<feed_id>/<data_object_id>")
 def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
     res = []
-    feed_attributes = _read_feed_attributes_by_feed_id(feed_id)
-    data_object_attributes = _read_data_object_attributes_by_data_object_id(data_object_id)
-    mapping = _read_all_feed_attr_data_object_attr()
+    feed_attributes = rd.read_feed_attributes_by_feed_id(eval(feed_id))
+    data_object_attributes = rd.read_data_object_attributes_by_data_object_id(
+        eval(data_object_id)
+    )
+    mapping = rd.feed_attr_data_object_attr.entries
     feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
 
     for m in mapping:
         # look for feed_attribute
         if (
-            m["FEED_ATTRIBUTE_ID"]["SOURCE_SYSTEM"] == feed_id_filter["SOURCE_SYSTEM"] and
-            m["FEED_ATTRIBUTE_ID"]["FEED_NAME"] == feed_id_filter["FEED_NAME"] and
-            m["DATA_OBJECT_ATTRIBUTE_ID"]["DATA_OBJECT_NAME"] == data_object_id_filter["DATA_OBJECT_NAME"] and
+            m["FEED_ATTRIBUTE_ID"]["SOURCE_SYSTEM"] == feed_id_filter["SOURCE_SYSTEM"]
+            and 
+            m["FEED_ATTRIBUTE_ID"]["FEED_NAME"] == feed_id_filter["FEED_NAME"]
+            and
+            m["DATA_OBJECT_ATTRIBUTE_ID"]["DATA_OBJECT_NAME"] == data_object_id_filter["DATA_OBJECT_NAME"]
+            and 
             m["DATA_OBJECT_ATTRIBUTE_ID"]["TGT_DB_NAME"] == data_object_id_filter["TGT_DB_NAME"]
         ):
             fa, doa = None, None
@@ -175,14 +83,15 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
                 continue
             for jx, doa_jx in enumerate(data_object_attributes):
                 if (
-                    doa_jx and
-                    doa_jx["DATA_OBJECT_ATTRIBUTE_ID"] == m["DATA_OBJECT_ATTRIBUTE_ID"]
+                    doa_jx
+                    and doa_jx["DATA_OBJECT_ATTRIBUTE_ID"]
+                    == m["DATA_OBJECT_ATTRIBUTE_ID"]
                 ):
                     doa = doa_jx
                     break
             if not doa:
                 continue
-            
+
             do = {}
             do["FEED_ATTRIBUTE_ID"] = fa["FEED_ATTRIBUTE_ID"]
             do["FEED_ATTRIBUTE_NAME"] = fa["ATTRIBUTE_NAME"]
@@ -196,7 +105,7 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
             res.append(do)
             feed_attributes[ix] = None
             data_object_attributes[jx] = None
-    
+
     # add rest
     for fa in feed_attributes:
         if not fa:
@@ -218,31 +127,42 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
         do["DATA_OBJECT_ATTRIBUTE_TYPE"] = doa["ATTRIBUTE_TYPE"]
         do["TRANSFORM_FN"] = m.get("TRANSFORM_FN")
         res.append(do)
-    
+
     return flask.jsonify(res)
 
 
 @app.route(
     "/read_table_transformation_by_feed_id_data_object_id/<feed_id>/<data_object_id>"
 )
-def read_table_transformation_by_feed_id_data_object_id(feed_id, data_object_id):
+def read_table_transformation_by_feed_id_data_object_id(
+    feed_id, data_object_id
+):
+    feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
 
-    with db_connect() as conn:
-        curs = conn.cursor()
-        stmt = f"""
-            select transform_sql_query, src_filter_sql
-            from odap.feed_data_object
-            where feed_id = {feed_id} and data_object_id = {data_object_id}
-            limit 1
-        """
-        app.logger.info(stmt)
-        curs.execute(stmt)
-        do = {}
-        for res in curs.fetchall():
-            do["transform_sql_query"] = res[0]
-            do["src_filter_sql"] = res[1]
+    # find the corresponding feed_id details
+    feed = None
+    for fd in rd.feeds.entries:
+        if fd["FEED_ID"] == feed_id_filter:
+            feed = fd
+            feed["NEW_FEED_ID"] = {
+                "FEED_NAME": feed["FEED_NAME"],
+                "DB_NAME": feed["DB_NAME"],
+            }
             break
-        return flask.jsonify(do)
+
+    if not feed:
+        return {}
+
+    for r in rd.feed_data_objects.entries:
+        if (
+            feed["NEW_FEED_ID"] == r["FEED_ID"]
+            and data_object_id_filter == r["DATA_OBJECT_ID"]
+        ):
+            do = {}
+            do["SRC_FILTER_SQL"] = r.get("SRC_FILTER_SQL")
+            do["TRANSFORM_SQL_QUERY"] = r.get("TRANSFORM_SQL_QUERY")
+            return flask.jsonify(do)
+    return {}
 
 
 @app.route("/save_transformation/<feed_id>/<data_object_id>", methods=["POST"])
@@ -474,10 +394,4 @@ def db_connect():
 
 
 if __name__ == "__main__":
-    _read_all_feeds()
-    _read_all_data_objects()
-    _read_all_feed_attributes()
-    _read_all_data_object_attributes()
-    _read_all_feed_attr_data_object_attr()
-    _read_all_feed_data_objects()
     app.run(host="0.0.0.0", port=3000, debug=True)

@@ -7,7 +7,7 @@ config = None
 def read_config_file():
     global config
     root_dir = os.path.abspath(os.path.dirname(__file__))
-    config_file = os.path.join(root_dir, 'config.yaml')
+    config_file = os.path.join(root_dir, "config.yaml")
     with open(config_file) as stream:
         try:
             config = yaml.safe_load(stream)
