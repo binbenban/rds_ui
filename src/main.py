@@ -5,7 +5,7 @@ import yaml_processor as yp
 
 
 app = Flask(__name__)
-rd = yaml_reader.Reader()
+rd = yaml_reader.reader_instance()
 
 
 @app.route("/")
@@ -20,19 +20,25 @@ def landing():
 
 @app.route("/read_feed_attributes_by_feed_id/<feed_id>")
 def read_feed_attributes_by_feed_id(feed_id):
-    res = rd.read_feed_attributes_by_feed_id(eval(feed_id))
+    res = rd.feed_attributes.filter_entries(
+        "FEED_ID", eval(feed_id), "ATTRIBUTE_NO"
+    )
     return flask.jsonify(res)
 
 
 @app.route("/read_data_object_attributes_by_data_object_id/<data_object_id>")
 def read_data_object_attributes_by_data_object_id(data_object_id):
-    res = rd.read_data_object_attributes_by_data_object_id(eval(data_object_id))
+    res = rd.data_object_attributes.filter_entries(
+        "DATA_OBJECT_ID", eval(data_object_id), "ATTRIBUTE_NO"
+    )
     return flask.jsonify(res)
 
 
 @app.route("/read_one_feed_attribute/<feed_id>/<attribute_name>")
 def read_one_feed_attribute(feed_id, attribute_name):
-    for fa in rd.read_feed_attributes_by_feed_id(eval(feed_id)):
+    for fa in rd.feed_attributes.filter_entries(
+        "FEED_ID", eval(feed_id), "ATTRIBUTE_NO"
+    ):
         if fa["ATTRIBUTE_NAME"] == attribute_name:
             return fa
     return {}
@@ -40,7 +46,9 @@ def read_one_feed_attribute(feed_id, attribute_name):
 
 @app.route("/read_one_data_object_attribute/<data_object_id>/<attribute_name>")
 def read_one_data_object_attribute(data_object_id, attribute_name):
-    for doa in rd.read_data_object_attributes_by_data_object_id(eval(data_object_id)):
+    for doa in rd.data_object_attributes.filter_entries(
+        "DATA_OBJECT_ID", eval(data_object_id), "ATTRIBUTE_NO"
+    ):
         if doa["ATTRIBUTE_NAME"] == attribute_name:
             return doa
     return {}
@@ -48,87 +56,27 @@ def read_one_data_object_attribute(data_object_id, attribute_name):
 
 @app.route("/read_attributes_by_feed_id_data_object_id/<feed_id>/<data_object_id>")
 def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
-    res = []
-    feed_attributes = rd.read_feed_attributes_by_feed_id(eval(feed_id))
-    data_object_attributes = rd.read_data_object_attributes_by_data_object_id(
-        eval(data_object_id)
+    feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
+    feed_attrs = rd.feed_attributes.filter_entries(
+        "FEED_ID", feed_id, "ATTRIBUTE_NO"
+    )
+    data_object_attrs = rd.data_object_attributes.filter_entries(
+        "DATA_OBJECT_ID", data_object_id, "ATTRIBUTE_NO"
     )
     mapping = rd.feed_attr_data_object_attr.entries
-    feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
-    print(feed_id_filter)
-    print(data_object_id_filter)
 
-    for m in mapping:
-        # look for feed_attribute
-        if (
-            m["FEED_ATTRIBUTE_ID"]["SOURCE_SYSTEM"] == feed_id_filter["SOURCE_SYSTEM"]
-            and m["FEED_ATTRIBUTE_ID"]["FEED_NAME"] == feed_id_filter["FEED_NAME"]
-            and m["DATA_OBJECT_ATTRIBUTE_ID"]["DATA_OBJECT_NAME"]
-            == data_object_id_filter["DATA_OBJECT_NAME"]
-            and m["DATA_OBJECT_ATTRIBUTE_ID"]["TGT_DB_NAME"]
-            == data_object_id_filter["TGT_DB_NAME"]
-        ):
-            fa, doa = None, None
-            for ix, fa_ix in enumerate(feed_attributes):
-                if fa_ix and fa_ix["FEED_ATTRIBUTE_ID"] == m["FEED_ATTRIBUTE_ID"]:
-                    fa = fa_ix
-                    break
-            if not fa:
-                continue
-            for jx, doa_jx in enumerate(data_object_attributes):
-                if (
-                    doa_jx
-                    and doa_jx["DATA_OBJECT_ATTRIBUTE_ID"]
-                    == m["DATA_OBJECT_ATTRIBUTE_ID"]
-                ):
-                    doa = doa_jx
-                    break
-            if not doa:
-                continue
-
-            do = {}
-            do["FEED_ATTRIBUTE_ID"] = fa["FEED_ATTRIBUTE_ID"]
-            do["FEED_ATTRIBUTE_NAME"] = fa["ATTRIBUTE_NAME"]
-            do["FEED_ATTRIBUTE_TYPE"] = fa["ATTRIBUTE_TYPE"]
-            do["FEED_ATTRIBUTE_NO"] = fa["ATTRIBUTE_NO"]
-            do["DATA_OBJECT_ATTRIBUTE_ID"] = doa["DATA_OBJECT_ATTRIBUTE_ID"]
-            do["DATA_OBJECT_ATTRIBUTE_NO"] = doa["ATTRIBUTE_NO"]
-            do["DATA_OBJECT_ATTRIBUTE_NAME"] = doa["ATTRIBUTE_NAME"]
-            do["DATA_OBJECT_ATTRIBUTE_TYPE"] = doa["ATTRIBUTE_TYPE"]
-            do["TRANSFORM_FN"] = m.get("TRANSFORM_FN", "")
-            res.append(do)
-            feed_attributes[ix] = None
-            data_object_attributes[jx] = None
-
-    # add rest
-    for fa in feed_attributes:
-        if not fa:
-            continue
-        do = {}
-        do["FEED_ATTRIBUTE_ID"] = fa.get("FEED_ATTRIBUTE_ID")
-        do["FEED_ATTRIBUTE_NAME"] = fa.get("ATTRIBUTE_NAME")
-        do["FEED_ATTRIBUTE_TYPE"] = fa.get("ATTRIBUTE_TYPE")
-        do["FEED_ATTRIBUTE_NO"] = fa.get("ATTRIBUTE_NO")
-        res.append(do)
-
-    for doa in data_object_attributes:
-        if not doa:
-            continue
-        do = {}
-        do["DATA_OBJECT_ATTRIBUTE_ID"] = doa["DATA_OBJECT_ATTRIBUTE_ID"]
-        do["DATA_OBJECT_ATTRIBUTE_NO"] = doa["ATTRIBUTE_NO"]
-        do["DATA_OBJECT_ATTRIBUTE_NAME"] = doa["ATTRIBUTE_NAME"]
-        do["DATA_OBJECT_ATTRIBUTE_TYPE"] = doa["ATTRIBUTE_TYPE"]
-        do["TRANSFORM_FN"] = m.get("TRANSFORM_FN")
-        res.append(do)
-
+    res = yp.map_feed_data_object_attr(
+        feed_id_filter, data_object_id_filter,
+        feed_attrs, data_object_attrs, mapping
+    )
     return flask.jsonify(res)
 
 
 @app.route(
     "/read_table_transformation_by_feed_id_data_object_id/<feed_id>/<data_object_id>"
 )
-def read_table_transformation_by_feed_id_data_object_id(feed_id, data_object_id):
+def read_table_transformation_by_feed_id_data_object_id(
+        feed_id, data_object_id):
     feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
 
     # find the corresponding feed_id details
@@ -183,9 +131,8 @@ def save_feed(feed_id):
             "FEED_FILE_TYPE": data.get("new_feed_filetype"),
             "DB_NAME": data.get("new_feed_dbname"),
         }
-        rd.feeds.add_entry(
-            yp.create_feed(new_feed, data)
-        )
+        rd.feeds.add_entry(new_feed)
+
         rd.feed_attributes.add_entries(
             yp.create_feed_attributes(new_feed, data)
         )

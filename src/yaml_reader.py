@@ -11,6 +11,8 @@ yaml = YAML()
 yaml.preserve_quotes = True
 yaml.indent(mapping=4, sequence=6, offset=4)
 
+reader = None
+
 
 def read_metadata_yaml(table_name: str) -> dict:
     parent_path = util.metadata_path()
@@ -23,9 +25,17 @@ def read_metadata_yaml(table_name: str) -> dict:
     return feed
 
 
+def reader_instance():
+    global reader
+    if not reader:
+        reader = Reader()
+    return reader
+
+
 class Table:
     def __init__(self, table_name: str, keys: List[str]):
         self.table_name = table_name
+        self.key_name = f"{table_name}_ID".upper()
         self.keys = keys
         self.from_yaml = None
         self.entries = None
@@ -35,34 +45,43 @@ class Table:
         self.from_yaml, self.entries = self.read_from_yaml(
             self.table_name, self.keys
         )
+        self.build_composite_key()
 
     def read_from_yaml(self, table_name: str, keys: List):
         logging.info("loading yaml... " + table_name)
         data_records = []
-        key_name = f"{table_name}_ID".upper()
 
         from_yaml = read_metadata_yaml(table_name)
         for r in from_yaml["data_object"]["data_records"]:
             row = r["row"]
             record = {}
-            record[key_name] = {}
-            for k in keys:
-                if isinstance(row[k], dict):
-                    for key, val in row[k].items():
-                        record[key_name][key] = val
-                else:
-                    record[key_name][k] = row[k]
-
+            # record[self.key_name] = {}
+            # for k in keys:
+            #     if isinstance(row[k], dict):
+            #         for key, val in row[k].items():
+            #             record[self.key_name][key] = val
+            #     else:
+            #         record[self.key_name][k] = row[k]
             for k, v in row.items():
                 record[k] = v
+
             data_records.append(record)
         return from_yaml, data_records
 
+    def build_composite_key(self):
+        for r in self.entries:
+            r[self.key_name] = {
+                k: r[k]
+                for k in self.keys
+            }
+
     def add_entry(self, entry):
         self.entries.append(entry)
+        self.build_composite_key()
 
     def add_entries(self, entries):
         self.entries.extend(entries)
+        self.build_composite_key()
 
     def delete_entries(self, compare_field: str, compare_value: dict):
         res = []
@@ -71,6 +90,14 @@ class Table:
                 continue
             res.append(x)
         self.entries = res
+
+    def filter_entries(self, filter_by, filter_val, order_by):
+        res = []
+        for x in self.entries:
+            if x[filter_by] == filter_val:
+                res.append(x)
+        res.sort(key=lambda x: x[order_by])
+        return res
 
     def dump(self):
         filepath = os.path.join(
@@ -117,20 +144,4 @@ class Reader:
             "feed_data_object", ["FEED_ID", "DATA_OBJECT_ID"])
         print(f"finished refreshing all yamls...{arrow.now()}")
 
-    def read_data_object_attributes_by_data_object_id(
-        self, data_object_id: str
-    ):
-        res = []
-        for x in self.data_object_attributes.entries:
-            if x["DATA_OBJECT_ID"] == data_object_id:
-                res.append(x)
-        res.sort(key=lambda x: x["ATTRIBUTE_NO"])
-        return res
 
-    def read_feed_attributes_by_feed_id(self, feed_id: dict):
-        res = []
-        for x in self.feed_attributes.entries:
-            if x["FEED_ID"] == feed_id:
-                res.append(x)
-        res.sort(key=lambda x: x["ATTRIBUTE_NO"])
-        return res
