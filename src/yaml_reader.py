@@ -1,38 +1,93 @@
 import util
 from typing import List
+from ruamel.yaml import YAML
+import logging
+import os
+import arrow
+import copy
 
 
-def read_from_yaml(table_name: str, keys: List):
-    res = []
-    key_name = f"{table_name}_ID".upper()
+yaml = YAML()
+yaml.preserve_quotes = True
+yaml.indent(mapping=4, sequence=6, offset=4)
 
-    from_yaml = util.read_metadata_yaml(table_name)
-    for r in from_yaml["data_object"]["data_records"]:
-        row = r["row"]
-        record = {}
-        record[key_name] = {}
-        for k in keys:
-            if isinstance(row[k], dict):
-                for key, val in row[k].items():
-                    record[key_name][key] = val
-            else:
-                record[key_name][k] = row[k]
 
-        for k, v in row.items():
-            record[k] = v
-        res.append(record)
-    return res
+def read_metadata_yaml(table_name: str) -> dict:
+    parent_path = util.metadata_path()
+    if parent_path[-1] == "/":
+        parent_path = parent_path[:-1]
+    path = f"{parent_path}/yaml/{table_name}.yaml"
+
+    with open(path) as f:
+        feed = yaml.load(f)
+    return feed
 
 
 class Table:
     def __init__(self, table_name: str, keys: List[str]):
         self.table_name = table_name
         self.keys = keys
-        self.entries = self.refresh()
+        self.from_yaml = None
+        self.entries = None
+        self.refresh()
 
     def refresh(self):
-        entries = read_from_yaml(self.table_name, self.keys)
-        return entries
+        self.from_yaml, self.entries = self.read_from_yaml(
+            self.table_name, self.keys
+        )
+
+    def read_from_yaml(self, table_name: str, keys: List):
+        logging.info("loading yaml... " + table_name)
+        data_records = []
+        key_name = f"{table_name}_ID".upper()
+
+        from_yaml = read_metadata_yaml(table_name)
+        for r in from_yaml["data_object"]["data_records"]:
+            row = r["row"]
+            record = {}
+            record[key_name] = {}
+            for k in keys:
+                if isinstance(row[k], dict):
+                    for key, val in row[k].items():
+                        record[key_name][key] = val
+                else:
+                    record[key_name][k] = row[k]
+
+            for k, v in row.items():
+                record[k] = v
+            data_records.append(record)
+        return from_yaml, data_records
+
+    def add_entry(self, entry):
+        self.entries.append(entry)
+
+    def add_entries(self, entries):
+        self.entries.extend(entries)
+
+    def delete_entries(self, compare_field: str, compare_value: dict):
+        res = []
+        for x in self.entries:
+            if x[compare_field] == compare_value:
+                continue
+            res.append(x)
+        self.entries = res
+
+    def dump(self):
+        filepath = os.path.join(
+            util.metadata_path(),
+            f"temp_{self.table_name}.yaml",
+        )
+        entries_no_id = copy.deepcopy(self.entries)
+        id_col = f"{self.table_name.upper()}_ID"
+        for e in entries_no_id:
+            if id_col in e:
+                del e[id_col]
+        self.from_yaml['data_object']['data_records'] = [
+            {"row": e}
+            for e in entries_no_id
+        ]
+        with open(filepath, 'w') as f:
+            yaml.dump(self.from_yaml, f)
 
 
 class Reader:
@@ -46,6 +101,8 @@ class Reader:
         self.refresh()
 
     def refresh(self, force=True):
+        print(f"start refreshing all yamls...{arrow.now()}")
+
         self.feeds = Table("feed", ["SOURCE_SYSTEM", "FEED_NAME"])
         self.data_objects = Table(
             "data_object", ["DATA_OBJECT_NAME", "TGT_DB_NAME"])
@@ -58,6 +115,7 @@ class Reader:
             ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"])
         self.feed_data_objects = Table(
             "feed_data_object", ["FEED_ID", "DATA_OBJECT_ID"])
+        print(f"finished refreshing all yamls...{arrow.now()}")
 
     def read_data_object_attributes_by_data_object_id(
         self, data_object_id: str

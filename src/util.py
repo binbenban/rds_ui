@@ -1,13 +1,20 @@
-import yaml
+import oyaml as yaml
 import os
+import ruamel.yaml
+
 
 config = None
 
 
+def get_project_path():
+    return os.path.abspath(os.path.dirname(__file__))
+
+
 def read_config_file():
     global config
-    root_dir = os.path.abspath(os.path.dirname(__file__))
-    config_file = os.path.join(root_dir, "config.yaml")
+    config_file = os.path.join(
+        get_project_path(), "config.yaml"
+    )
     with open(config_file) as stream:
         try:
             config = yaml.safe_load(stream)
@@ -29,12 +36,14 @@ def metadata_path() -> str:
     return res
 
 
-def read_metadata_yaml(table_name: str) -> dict:
-    parent_path = metadata_path()
-    if parent_path[-1] == "/":
-        parent_path = parent_path[:-1]
-    path = f"{parent_path}/yaml/{table_name}.yaml"
+def quote_yaml_element(s: any) -> any:
+    if isinstance(s, str) and not s.isnumeric():
+        return ruamel.yaml.scalarstring.SingleQuotedScalarString(s)
+    else:
+        return s
 
-    with open(path) as f:
-        feed = yaml.load(f, Loader=yaml.FullLoader)
-    return feed
+
+def create_yaml_map(**m):
+    ret = ruamel.yaml.comments.CommentedMap(m)
+    ret.fa.set_flow_style()
+    return ret

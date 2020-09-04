@@ -1,0 +1,7 @@
+README.md
+setup.py
+src/odaprds.egg-info/PKG-INFO
+src/odaprds.egg-info/SOURCES.txt
+src/odaprds.egg-info/dependency_links.txt
+src/odaprds.egg-info/requires.txt
+src/odaprds.egg-info/top_level.txt
