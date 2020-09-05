@@ -1,10 +1,5 @@
 from ruamel.yaml.comments import CommentedMap as ordereddict
 import util
-import typing
-
-
-def _build_dict_value_from_keys(items: dict, keys: typing.List[str]) -> dict:
-    return {k: items[k] for k in keys}
 
 
 def create_feed_attributes(values: dict, data):
@@ -23,7 +18,7 @@ def create_feed_attributes(values: dict, data):
     for row in data["feed_attributes"]:
         new_feed_attribute = ordereddict()
         new_feed_attribute["FEED_ID"] = util.create_yaml_map(
-            **_build_dict_value_from_keys(
+            **util.build_dict_value_from_keys(
                 values, ["SOURCE_SYSTEM", "FEED_NAME"]
             )
         )
@@ -36,7 +31,7 @@ def create_feed_attributes(values: dict, data):
 
 def create_data_object(values: dict, data):
     new_data_object = values.copy()
-    new_data_object["DATA_OBJECT_ID"] = _build_dict_value_from_keys(
+    new_data_object["DATA_OBJECT_ID"] = util.build_dict_value_from_keys(
         values, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
     )
     return new_data_object
@@ -55,7 +50,7 @@ def create_data_object_attributes(values: dict, data):
     for row in data["data_object_attributes"]:
         new_data_object_attr = ordereddict()
         new_data_object_attr["DATA_OBJECT_ID"] = util.create_yaml_map(
-            **_build_dict_value_from_keys(
+            **util.build_dict_value_from_keys(
                 values, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
             )
         )
@@ -69,19 +64,14 @@ def create_data_object_attributes(values: dict, data):
 
 def map_feed_data_object_attr(
         feed_id, data_object_id, feed_attrs, data_object_attrs, mapping):
-
-    def copy_keys(keys, source_dict, target_dict):
-        for k in keys:
-            target_dict[k] = source_dict.get(k)
-
     res = []
 
     # for each mapping, find details in feed_attrs & data_object_attrs
     for m in mapping:
-        m_feed_id = _build_dict_value_from_keys(
+        m_feed_id = util.build_dict_value_from_keys(
             m["FEED_ATTRIBUTE_ID"], ["SOURCE_SYSTEM", "FEED_NAME"]
         )
-        m_data_object_id = _build_dict_value_from_keys(
+        m_data_object_id = util.build_dict_value_from_keys(
             m["DATA_OBJECT_ATTRIBUTE_ID"], ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
         )
 
@@ -92,7 +82,8 @@ def map_feed_data_object_attr(
         for ix, fa_ix in enumerate(feed_attrs):
             if not fa_ix:
                 continue
-            if fa_ix["FEED_ATTRIBUTE_ID"] == m["FEED_ATTRIBUTE_ID"]:
+            if util.flatten_dict(fa_ix["FEED_ATTRIBUTE_ID"]) == \
+                    m["FEED_ATTRIBUTE_ID"]:
                 fa = fa_ix
                 break
         if not fa:
@@ -100,24 +91,38 @@ def map_feed_data_object_attr(
         for jx, doa_jx in enumerate(data_object_attrs):
             if not doa_jx:
                 continue
-            if doa_jx["DATA_OBJECT_ATTRIBUTE_ID"] == \
+            if util.flatten_dict(doa_jx["DATA_OBJECT_ATTRIBUTE_ID"]) == \
                     m["DATA_OBJECT_ATTRIBUTE_ID"]:
                 doa = doa_jx
                 break
         if not doa:
             continue
 
+        # do["DATA_OBJECT_ATTRIBUTE_ID"] = doa["DATA_OBJECT_ATTRIBUTE_ID"]
+        # do["DATA_OBJECT_ATTRIBUTE_NO"] = doa["ATTRIBUTE_NO"]
+        # do["DATA_OBJECT_ATTRIBUTE_NAME"] = doa["ATTRIBUTE_NAME"]
+        # do["DATA_OBJECT_ATTRIBUTE_TYPE"] = doa["ATTRIBUTE_TYPE"]
+        # do["TRANSFORM_FN"] = m.get("TRANSFORM_FN")
+
         do = {}
-        copy_keys(
-            ["FEED_ATTRIBUTE_ID", "FEED_ATTRIBUTE_NAME",
-                "FEED_ATTRIBUTE_TYPE", "ATTRIBUTE_NO"],
-            fa, do)
-        copy_keys(
-            ["DATA_OBJECT_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_NO",
-                "DATA_OBJECT_ATTRIBUTE_NAME", "DATA_OBJECT_ATTRIBUTE_TYPE"],
-            doa, do)
-        copy_keys(
-            ["TRANSFORM_FN"], m, do)
+        util.copy_keys(
+            {
+                "FEED_ATTRIBUTE_ID": "FEED_ATTRIBUTE_ID",
+                "ATTRIBUTE_NAME": "FEED_ATTRIBUTE_NAME",
+                "ATTRIBUTE_TYPE": "FEED_ATTRIBUTE_TYPE",
+                "ATTRIBUTE_NO": "FEED_ATTRIBUTE_NO",
+            }, fa, do)
+        util.copy_keys(
+            {
+                "DATA_OBJECT_ATTRIBUTE_ID": "DATA_OBJECT_ATTRIBUTE_ID",
+                "ATTRIBUTE_NO": "DATA_OBJECT_ATTRIBUTE_NO",
+                "ATTRIBUTE_NAME": "DATA_OBJECT_ATTRIBUTE_NAME",
+                "ATTRIBUTE_TYPE": "DATA_OBJECT_ATTRIBUTE_TYPE",
+            }, doa, do)
+        util.copy_keys(
+            {
+                "TRANSFORM_FN": "TRANSFORM_FN",
+            }, m, do)
 
         res.append(do)
         # set to None so won't copy again later
@@ -129,22 +134,44 @@ def map_feed_data_object_attr(
         if not fa:
             continue
         do = {}
-        copy_keys(
-            ["FEED_ATTRIBUTE_ID", "FEED_ATTRIBUTE_NAME",
-                "FEED_ATTRIBUTE_TYPE", "ATTRIBUTE_NO"],
-            fa, do)
+        util.copy_keys(
+            {
+                "FEED_ATTRIBUTE_ID": "FEED_ATTRIBUTE_ID",
+                "ATTRIBUTE_NAME": "FEED_ATTRIBUTE_NAME",
+                "ATTRIBUTE_TYPE": "FEED_ATTRIBUTE_TYPE",
+                "ATTRIBUTE_NO": "FEED_ATTRIBUTE_NO",
+            }, fa, do)
         res.append(do)
 
     for doa in data_object_attrs:
         if not doa:
             continue
         do = {}
-        copy_keys(
-            ["DATA_OBJECT_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_NO",
-                "DATA_OBJECT_ATTRIBUTE_NAME", "DATA_OBJECT_ATTRIBUTE_TYPE"],
-            doa, do)
-        copy_keys(
-            ["TRANSFORM_FN"], m, do)
+        util.copy_keys(
+            {
+                "DATA_OBJECT_ATTRIBUTE_ID": "DATA_OBJECT_ATTRIBUTE_ID",
+                "ATTRIBUTE_NO": "DATA_OBJECT_ATTRIBUTE_NO",
+                "ATTRIBUTE_NAME": "DATA_OBJECT_ATTRIBUTE_NAME",
+                "ATTRIBUTE_TYPE": "DATA_OBJECT_ATTRIBUTE_TYPE",
+            }, doa, do)
         res.append(do)
 
     return res
+
+
+def search_feed_data_object(feed, feed_data_objects):
+    feed_id_temp = util.build_dict_value_from_keys(
+        feed, ["FEED_NAME", "DB_NAME"]
+    )
+
+    for r in feed_data_objects:
+        if feed_id_temp == r["FEED_ID"]:
+            do = {}
+            util.copy_keys(
+                {
+                    "SRC_FILTER_SQL": "SRC_FILTER_SQL",
+                    "TRANSFORM_SQL_QUERY": "TRANSFORM_SQL_QUERY",
+                }, r, do
+            )
+            return do
+    return {}

@@ -58,10 +58,10 @@ def read_one_data_object_attribute(data_object_id, attribute_name):
 def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
     feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
     feed_attrs = rd.feed_attributes.filter_entries(
-        "FEED_ID", feed_id, "ATTRIBUTE_NO"
+        "FEED_ID", feed_id_filter, "ATTRIBUTE_NO"
     )
     data_object_attrs = rd.data_object_attributes.filter_entries(
-        "DATA_OBJECT_ID", data_object_id, "ATTRIBUTE_NO"
+        "DATA_OBJECT_ID", data_object_id_filter, "ATTRIBUTE_NO"
     )
     mapping = rd.feed_attr_data_object_attr.entries
 
@@ -79,30 +79,18 @@ def read_table_transformation_by_feed_id_data_object_id(
         feed_id, data_object_id):
     feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
 
-    # find the corresponding feed_id details
-    feed = None
-    for fd in rd.feeds.entries:
-        if fd["FEED_ID"] == feed_id_filter:
-            feed = fd
-            feed["NEW_FEED_ID"] = {
-                "FEED_NAME": feed["FEED_NAME"],
-                "DB_NAME": feed["DB_NAME"],
-            }
-            break
-
-    if not feed:
+    feeds = rd.feeds.filter_entries(
+        "FEED_ID", feed_id_filter, None
+    )
+    if not feeds:
         return {}
+    feed = feeds[0]
 
-    for r in rd.feed_data_objects.entries:
-        if (
-            feed["NEW_FEED_ID"] == r["FEED_ID"]
-            and data_object_id_filter == r["DATA_OBJECT_ID"]
-        ):
-            do = {}
-            do["SRC_FILTER_SQL"] = r.get("SRC_FILTER_SQL")
-            do["TRANSFORM_SQL_QUERY"] = r.get("TRANSFORM_SQL_QUERY")
-            return flask.jsonify(do)
-    return {}
+    feed_data_objects = rd.feed_data_objects.filter_entries(
+        "DATA_OBJECT_ID", data_object_id_filter, None
+    )
+    res = yp.search_feed_data_object(feed, feed_data_objects)
+    return flask.jsonify(res)
 
 
 @app.route("/save_feed/<feed_id>", methods=["POST"])

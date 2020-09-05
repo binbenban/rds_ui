@@ -96,7 +96,8 @@ class Table:
         for x in self.entries:
             if x[filter_by] == filter_val:
                 res.append(x)
-        res.sort(key=lambda x: x[order_by])
+        if order_by:
+            res.sort(key=lambda x: x[order_by])
         return res
 
     def dump(self):

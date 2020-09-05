@@ -1,6 +1,7 @@
 import oyaml as yaml
 import os
 import ruamel.yaml
+import typing
 
 
 config = None
@@ -47,3 +48,25 @@ def create_yaml_map(**m):
     ret = ruamel.yaml.comments.CommentedMap(m)
     ret.fa.set_flow_style()
     return ret
+
+
+def build_dict_value_from_keys(items: dict, keys: typing.List[str]) -> dict:
+    return {k: items[k] for k in keys}
+
+
+def flatten_dict(d):
+    res = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            for ks, vs, in v.items():
+                res[ks] = vs
+        else:
+            res[k] = v
+    return res
+
+
+def copy_keys(keys: dict, source_dict, target_dict):
+    for ks, kt in keys.items():
+        target_dict[kt] = source_dict.get(ks)
+
+

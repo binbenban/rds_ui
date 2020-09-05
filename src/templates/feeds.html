@@ -86,14 +86,6 @@
     </p>
 </div>
 
-<div class="w3-container">
-    <h2 class="w3-text-blue">Generated Result</h2>
-    <p>
-    <textarea id="sql_result" cols="120" rows="30" style="resize: none;" data-role="none"></textarea> 
-    </p> 
-</div>
-
-
 <script type="text/javascript">
     function changeValueIfEqual(element, ifValue, thenValue) {
         if (element.value == ifValue) {
@@ -240,11 +232,6 @@
         });
     }
 
-    function setDataResult(data) {
-        $('#sql_result').val(data);
-        // autosize($('#sql_result'));
-    }
-
     // feed list - change
     $("#feed_list").change(function() {
         selected_value = $(this).val()
@@ -346,7 +333,7 @@
             }),
             contentType: "application/json",
         }).done(function(data) {
-            setDataResult(data);
+            alert("done");
         })
     });
 
