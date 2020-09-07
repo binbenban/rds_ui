@@ -18,6 +18,9 @@ def landing():
     )
 
 
+"""
+    :param feed_id: {feed_name, source_system}
+"""
 @app.route("/read_feed_attributes_by_feed_id/<feed_id>")
 def read_feed_attributes_by_feed_id(feed_id):
     res = rd.feed_attributes.filter_entries(
@@ -36,38 +39,32 @@ def read_data_object_attributes_by_data_object_id(data_object_id):
 
 @app.route("/read_one_feed_attribute/<feed_id>/<attribute_name>")
 def read_one_feed_attribute(feed_id, attribute_name):
-    for fa in rd.feed_attributes.filter_entries(
-        "FEED_ID", eval(feed_id), "ATTRIBUTE_NO"
-    ):
-        if fa["ATTRIBUTE_NAME"] == attribute_name:
-            return fa
-    return {}
+    print(f"{eval(feed_id)}; {attribute_name}")
+    met, _ = rd.feed_attributes.filter_entries_multi(
+        [
+            ["FEED_ID", eval(feed_id)],
+            ["ATTRIBUTE_NAME", attribute_name]
+        ], "ATTRIBUTE_NO"
+    )
+    return flask.jsonify(met[0])
 
 
 @app.route("/read_one_data_object_attribute/<data_object_id>/<attribute_name>")
 def read_one_data_object_attribute(data_object_id, attribute_name):
-    for doa in rd.data_object_attributes.filter_entries(
-        "DATA_OBJECT_ID", eval(data_object_id), "ATTRIBUTE_NO"
-    ):
-        if doa["ATTRIBUTE_NAME"] == attribute_name:
-            return doa
-    return {}
-
-
-@app.route("/read_attributes_by_feed_id_data_object_id/<feed_id>/<data_object_id>")
-def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
-    feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
-    feed_attrs = rd.feed_attributes.filter_entries(
-        "FEED_ID", feed_id_filter, "ATTRIBUTE_NO"
+    print(f"{eval(data_object_id)}; {attribute_name}")
+    met, _ = rd.data_object_attributes.filter_entries_multi(
+        [
+            ["DATA_OBJECT_ID", eval(data_object_id)],
+            ["ATTRIBUTE_NAME", attribute_name],
+        ], "ATTRIBUTE_NO"
     )
-    data_object_attrs = rd.data_object_attributes.filter_entries(
-        "DATA_OBJECT_ID", data_object_id_filter, "ATTRIBUTE_NO"
-    )
-    mapping = rd.feed_attr_data_object_attr.entries
+    return flask.jsonify(met[0])
 
-    res = yp.map_feed_data_object_attr(
-        feed_id_filter, data_object_id_filter,
-        feed_attrs, data_object_attrs, mapping
+
+@app.route("/map_feed_attr_data_object_attr/<feed_id>/<data_object_id>")
+def map_feed_attr_data_object_attr(feed_id, data_object_id):
+    res = yp.map_feed_attr_data_object_attr(
+        eval(feed_id), eval(data_object_id)
     )
     return flask.jsonify(res)
 
@@ -76,20 +73,11 @@ def read_attributes_by_feed_id_data_object_id(feed_id, data_object_id):
     "/read_table_transformation_by_feed_id_data_object_id/<feed_id>/<data_object_id>"
 )
 def read_table_transformation_by_feed_id_data_object_id(
-        feed_id, data_object_id):
-    feed_id_filter, data_object_id_filter = eval(feed_id), eval(data_object_id)
-
-    feeds = rd.feeds.filter_entries(
-        "FEED_ID", feed_id_filter, None
+    feed_id, data_object_id
+):
+    res = yp.read_table_transformation_by_feed_id_data_object_id(
+        eval(feed_id), eval(data_object_id)
     )
-    if not feeds:
-        return {}
-    feed = feeds[0]
-
-    feed_data_objects = rd.feed_data_objects.filter_entries(
-        "DATA_OBJECT_ID", data_object_id_filter, None
-    )
-    res = yp.search_feed_data_object(feed, feed_data_objects)
     return flask.jsonify(res)
 
 
@@ -103,38 +91,15 @@ def save_feed(feed_id):
         feed_id: serialised feed_id or 'NEW_FEED'
     in request.json
         if NEW_FEED:
-            new_feed_sourcesystem, new_feed_name, new_feed_filetype, new_feed_dbname
+            new_feed_sourcesystem, new_feed_name,
+            new_feed_filetype, new_feed_dbname
         else:
             feed_attributes [{
                 FEED_ATTRIBUTE_ID,ATTRIBUTE_NAME,ATTRIBUTE_NO,ATTRIBUTE_TYPE,PRIMARY_KEY_IND,NULLABLE_IND,
                 ATTRIBUTE_LENGTH,ATTRIBUTE_PRECISION,NESTED_ATTRIBUTE_TYPE,NESTED_ATTRIBUTE_PATH,NESTED_LEVEL
             }]
     """
-    data = request.json
-
-    if feed_id == "NEW_FEED":
-        new_feed = {
-            "SOURCE_SYSTEM": data.get("new_feed_sourcesystem"),
-            "FEED_NAME": data.get("new_feed_name"),
-            "FEED_FILE_TYPE": data.get("new_feed_filetype"),
-            "DB_NAME": data.get("new_feed_dbname"),
-        }
-        rd.feeds.add_entry(new_feed)
-
-        rd.feed_attributes.add_entries(
-            yp.create_feed_attributes(new_feed, data)
-        )
-    else:
-        feed = {
-            "SOURCE_SYSTEM": eval(feed_id)["SOURCE_SYSTEM"],
-            "FEED_NAME": eval(feed_id)["FEED_NAME"],
-        }
-        feed_attrs = yp.create_feed_attributes(feed, data)
-        rd.feed_attributes.delete_entries("FEED_ID", feed_attrs[0]["FEED_ID"])
-        rd.feed_attributes.add_entries(feed_attrs)
-
-    rd.feeds.dump()
-    rd.feed_attributes.dump()
+    yp.save_feed(eval(feed_id), request.json)
     return {"msg": "updated temp_feed.yaml, temp_feed_attribute.yaml"}
 
 
@@ -151,64 +116,58 @@ def save_data_object(data_object_id):
             new_data_object_dbname, new_data_object_name
         else:
             data_object_attributes [{
-                DATA_OBJECT_ATTRIBUTE_ID
-                ATTRIBUTE_NO
-                ATTRIBUTE_NAME
-                ATTRIBUTE_TYPE
-                PRIMARY_KEY_IND
+                DATA_OBJECT_ATTRIBUTE_ID, ATTRIBUTE_NO, ATTRIBUTE_NAME
+                ATTRIBUTE_TYPE, PRIMARY_KEY_IND
             }]
     """
-    data = request.json
-
-    if data_object_id == "NEW_DATA_OBJECT":
-        new_data_object = {
-            "DATA_OBJECT_NAME": data.get("new_data_object_name"),
-            "TGT_DB_NAME": data.get("new_data_object_dbname"),
-        }
-        rd.data_objects.add_entry(
-            yp.create_data_object(new_data_object, data)
-        )
-        rd.data_object_attributes.add_entries(
-            yp.create_feed_attributes(new_data_object, data)
-        )
-    else:
-        data_object = {
-            "DATA_OBJECT_NAME": eval(data_object_id)["DATA_OBJECT_NAME"],
-            "TGT_DB_NAME": eval(data_object_id)["TGT_DB_NAME"],
-        }
-        data_object_attrs = yp.create_data_object_attributes(data_object, data)
-        rd.data_object_attributes.delete_entries(
-            "DATA_OBJECT_ID", data_object_attrs[0]["DATA_OBJECT_ID"]
-        )
-        rd.data_object_attributes.add_entries(data_object_attrs)
-
-    rd.data_objects.dump()
-    rd.data_object_attributes.dump()
+    yp.save_data_object(eval(data_object_id), request.json)
     return {
-        "msg": "updated temp_data_objects.yaml, temp_data_objects_attributes.yaml"
+        "msg":
+        "updated temp_data_objects.yaml, temp_data_objects_attributes.yaml"
     }
 
 
 @app.route("/save_transformation/<feed_id>/<data_object_id>", methods=["POST"])
 def save_transformation(feed_id, data_object_id):
     """
-    1. update rd.feed_attr_data_object_attr.entries
-    2. update rd.feed_data_object.entries
+    assume feed, feed_attr, data_object, data_object_attr all exist in memory
+    in attr mapping entries
+    - delete where feed_attr_id and data_object_attr_id match (need flatten)
+    add new entries from request.json to attr mapping entries
+
     parameters:
-        data_object_id: serialised data_object_id or 'NEW_DATA_OBJECT'
+        feed_id:
+            SOURCE_SYSTEM':
+            'FEED_NAME':
+        data_object_id:
+            DATA_OBJECT_NAME
+            TGT_DB_NAME
     in request.json
-        if NEW_DATA_OBJECT:
-            new_data_object_dbname, new_data_object_name
-        else:
-            data_object_attributes [{
-                DATA_OBJECT_ATTRIBUTE_ID
-                ATTRIBUTE_NO
+        attribute_mappings:
+            DATA_OBJECT_ATTRIBUTE_ID:
+                ATTRIBUTE_NAME:
+                DATA_OBJECT_ID:
+                    DATA_OBJECT_NAME
+                    TGT_DB_NAME
+            DATA_OBJECT_ATTRIBUTE_NAME
+            DATA_OBJECT_ATTRIBUTE_NO
+            DATA_OBJECT_ATTRIBUTE_TYPE
+            FEED_ATTRIBUTE_ID
                 ATTRIBUTE_NAME
-                ATTRIBUTE_TYPE
-                PRIMARY_KEY_IND
-            }]
+                FEED_ID
+                    FEED_NAME
+                    SOURCE_SYSTEM
+            FEED_ATTRIBUTE_NAME
+            FEED_ATTRIBUTE_NO
+            FEED_ATTRIBUTE_TYPE
+            TRANSFORM_FN
+        transform_sql_query:
+        src_filter_sql:
     """
-    pass
+    yp.save_transformation(eval(feed_id), eval(data_object_id), request.json)
+    return {
+        "msg": "updated feed_attr_data_object_attr.yaml"
+    }
 
 
 if __name__ == "__main__":

@@ -44,6 +44,7 @@ def quote_yaml_element(s: any) -> any:
         return s
 
 
+# create an ordereddict which prints on one line
 def create_yaml_map(**m):
     ret = ruamel.yaml.comments.CommentedMap(m)
     ret.fa.set_flow_style()
@@ -54,6 +55,7 @@ def build_dict_value_from_keys(items: dict, keys: typing.List[str]) -> dict:
     return {k: items[k] for k in keys}
 
 
+# 1 level only
 def flatten_dict(d):
     res = {}
     for k, v in d.items():
@@ -68,5 +70,3 @@ def flatten_dict(d):
 def copy_keys(keys: dict, source_dict, target_dict):
     for ks, kt in keys.items():
         target_dict[kt] = source_dict.get(ks)
-
-
