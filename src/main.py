@@ -18,11 +18,9 @@ def landing():
     )
 
 
-"""
-    :param feed_id: {feed_name, source_system}
-"""
 @app.route("/read_feed_attributes_by_feed_id/<feed_id>")
 def read_feed_attributes_by_feed_id(feed_id):
+    """:param feed_id: {feed_name, source_system}"""
     res = rd.feed_attributes.filter_entries(
         "FEED_ID", eval(feed_id), "ATTRIBUTE_NO"
     )
@@ -39,26 +37,33 @@ def read_data_object_attributes_by_data_object_id(data_object_id):
 
 @app.route("/read_one_feed_attribute/<feed_id>/<attribute_name>")
 def read_one_feed_attribute(feed_id, attribute_name):
-    print(f"{eval(feed_id)}; {attribute_name}")
+    app.logger.info(f"feed_id={feed_id}, attr_name={attribute_name}")
     met, _ = rd.feed_attributes.filter_entries_multi(
         [
             ["FEED_ID", eval(feed_id)],
             ["ATTRIBUTE_NAME", attribute_name]
         ], "ATTRIBUTE_NO"
     )
-    return flask.jsonify(met[0])
+    if met:
+        return flask.jsonify(met[0])
+    else:
+        return {}
 
 
 @app.route("/read_one_data_object_attribute/<data_object_id>/<attribute_name>")
 def read_one_data_object_attribute(data_object_id, attribute_name):
-    print(f"{eval(data_object_id)}; {attribute_name}")
+    app.logger.info(f"feed_id={data_object_id}, attr_name={attribute_name}")
     met, _ = rd.data_object_attributes.filter_entries_multi(
         [
             ["DATA_OBJECT_ID", eval(data_object_id)],
             ["ATTRIBUTE_NAME", attribute_name],
         ], "ATTRIBUTE_NO"
     )
-    return flask.jsonify(met[0])
+    app.logger.info(met)
+    if met:
+        return flask.jsonify(met[0])
+    else:
+        return {}
 
 
 @app.route("/map_feed_attr_data_object_attr/<feed_id>/<data_object_id>")
@@ -99,7 +104,7 @@ def save_feed(feed_id):
                 ATTRIBUTE_LENGTH,ATTRIBUTE_PRECISION,NESTED_ATTRIBUTE_TYPE,NESTED_ATTRIBUTE_PATH,NESTED_LEVEL
             }]
     """
-    yp.save_feed(eval(feed_id), request.json)
+    yp.save_feed(feed_id, request.json)
     return {"msg": "updated temp_feed.yaml, temp_feed_attribute.yaml"}
 
 
@@ -120,7 +125,7 @@ def save_data_object(data_object_id):
                 ATTRIBUTE_TYPE, PRIMARY_KEY_IND
             }]
     """
-    yp.save_data_object(eval(data_object_id), request.json)
+    yp.save_data_object(data_object_id, request.json)
     return {
         "msg":
         "updated temp_data_objects.yaml, temp_data_objects_attributes.yaml"

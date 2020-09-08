@@ -6,6 +6,7 @@ import os
 import typing
 import arrow
 import copy
+import pickle
 
 
 yaml = YAML()
@@ -14,16 +15,20 @@ yaml.width = 40096
 yaml.indent(mapping=4, sequence=6, offset=4)
 
 reader = None
+READ_FROM_PICKLE = True
 
 
 def read_metadata_yaml(table_name: str) -> dict:
     parent_path = util.metadata_path()
     if parent_path[-1] == "/":
         parent_path = parent_path[:-1]
-    path = f"{parent_path}/yaml/{table_name}.yaml"
 
-    with open(path) as f:
-        feed = yaml.load(f)
+    if READ_FROM_PICKLE:
+        with open(f"{parent_path}/{table_name}.pkl", "rb") as f:
+            feed = pickle.load(f)
+    else:
+        with open(f"{parent_path}/yaml/{table_name}.yaml") as f:
+            feed = yaml.load(f)
     return feed
 
 
@@ -37,7 +42,6 @@ def reader_instance():
 class Table:
     def __init__(self, table_name: str, keys: List[str]):
         self.table_name = table_name
-        self.key_name = f"ZZ_{table_name}_ID".upper()
         self.keys = keys
         self.from_yaml = None
         self.entries = None
@@ -60,9 +64,10 @@ class Table:
         return from_yaml, data_records
 
     def build_columns(self):
+        key_name = "ZZ_" + self.table_name.upper() + "_ID"
         # by default build composite key
         for r in self.entries:
-            r[self.key_name] = {
+            r[key_name] = {
                 k: r[k]
                 for k in self.keys
             }
@@ -72,7 +77,7 @@ class Table:
         self.build_columns()
 
     def add_entries(self, entries):
-        self.entries.extend(entries)
+        self.entries.extend(entries)        
         self.build_columns()
 
     def delete_entries(self, conds: typing.List[typing.List]):

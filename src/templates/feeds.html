@@ -103,7 +103,7 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"ID", field:"ZZ_FEED_ATTRIBUTE_ID", width:120, hidden:true},
+            {title:"ID", field:"ZZ_FEED_ATTRIBUTE_ID", width:120, visible:false},
             {title:"Name", field:"ATTRIBUTE_NAME", width:200, editor:"input"},
             {title:"No", field:"ATTRIBUTE_NO", width:120, editor:"input"},
             {title:"Type", field:"ATTRIBUTE_TYPE", width:120, editor:"input"},
@@ -124,7 +124,7 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"Attribute ID", field:"ZZ_DATA_OBJECT_ATTRIBUTE_ID", width:150, hidden:true},
+            {title:"Attribute ID", field:"ZZ_DATA_OBJECT_ATTRIBUTE_ID", width:150, visible:false},
             {title:"Attribute No", field:"ATTRIBUTE_NO", width:150, editor:"input"},
             {title:"Attribute Name", field:"ATTRIBUTE_NAME", width:150, editor:"input"},
             {title:"Attribute Type", field:"ATTRIBUTE_TYPE", width:150, editor:"input"},
@@ -139,10 +139,10 @@
         layout:"fitColumns",
         placeholder:"No Data Set",
         columns: [
-            {title:"Feed Attr ID", field:"FEED_ATTRIBUTE_ID", width:150, hidden:true},
+            {title:"Feed Attr ID", field:"FEED_ATTRIBUTE_ID", width:150, visible:false},
             {title:"Feed Attr Name", field:"FEED_ATTRIBUTE_NAME", width:150, editor:"input"},
             {title:"Feed Attr Type", field:"FEED_ATTRIBUTE_TYPE", width:150},
-            {title:"Data Object Attr ID", field:"DATA_OBJECT_ATTRIBUTE_ID", width:190, hidden:true},
+            {title:"Data Object Attr ID", field:"DATA_OBJECT_ATTRIBUTE_ID", width:190, visible:false},
             {title:"Data Object Attr Name", field:"DATA_OBJECT_ATTRIBUTE_NAME", width:190, editor:"input"},
             {title:"Data Object Attr Type", field:"DATA_OBJECT_ATTRIBUTE_TYPE", width:190},
             {title:"Transformation", field:"TRANSFORM_FN", width:190, editor:"input"},
@@ -157,18 +157,18 @@
                     type: 'GET',
                 }).done(function(data) {
                     cell.getRow().update({
-                        "FEED_ATTRIBUTE_ID": data["FEED_ATTRIBUTE_ID"],
+                        "FEED_ATTRIBUTE_ID": data["ZZ_FEED_ATTRIBUTE_ID"],
                         "FEED_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
                         "FEED_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
                     })
                 });
-
+                console.log(cell.getRow().getData());
                 $.ajax({
                     url: '/read_one_data_object_attribute/'+$('#data_object_list').val()+"/"+cell.getRow().getData().DATA_OBJECT_ATTRIBUTE_NAME,
                     type: 'GET',
                 }).done(function(data) {
                     cell.getRow().update({
-                        "DATA_OBJECT_ATTRIBUTE_ID": data["DATA_OBJECT_ATTRIBUTE_ID"],
+                        "DATA_OBJECT_ATTRIBUTE_ID": data["ZZ_DATA_OBJECT_ATTRIBUTE_ID"],
                         "DATA_OBJECT_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
                         "DATA_OBJECT_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
                     })

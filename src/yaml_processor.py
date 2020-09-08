@@ -43,14 +43,14 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
         do = {}
         util.copy_keys(
             {
-                "ZZ_FEED_ATTRIBUTE_ID": "FEED_ATTRIBUTE_ID",
+                "ZZ_FEED_ATTRIBUTE_ID_FLAT": "FEED_ATTRIBUTE_ID",
                 "ATTRIBUTE_NAME": "FEED_ATTRIBUTE_NAME",
                 "ATTRIBUTE_TYPE": "FEED_ATTRIBUTE_TYPE",
                 "ATTRIBUTE_NO": "FEED_ATTRIBUTE_NO",
             }, fa, do)
         util.copy_keys(
             {
-                "ZZ_DATA_OBJECT_ATTRIBUTE_ID": "DATA_OBJECT_ATTRIBUTE_ID",
+                "ZZ_DATA_OBJECT_ATTRIBUTE_ID_FLAT": "DATA_OBJECT_ATTRIBUTE_ID",
                 "ATTRIBUTE_NO": "DATA_OBJECT_ATTRIBUTE_NO",
                 "ATTRIBUTE_NAME": "DATA_OBJECT_ATTRIBUTE_NAME",
                 "ATTRIBUTE_TYPE": "DATA_OBJECT_ATTRIBUTE_TYPE",
@@ -72,7 +72,7 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
         do = {}
         util.copy_keys(
             {
-                "ZZ_FEED_ATTRIBUTE_ID": "FEED_ATTRIBUTE_ID",
+                "ZZ_FEED_ATTRIBUTE_ID_FLAT": "FEED_ATTRIBUTE_ID",
                 "ATTRIBUTE_NAME": "FEED_ATTRIBUTE_NAME",
                 "ATTRIBUTE_TYPE": "FEED_ATTRIBUTE_TYPE",
                 "ATTRIBUTE_NO": "FEED_ATTRIBUTE_NO",
@@ -85,7 +85,7 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
         do = {}
         util.copy_keys(
             {
-                "DATA_OBJECT_ATTRIBUTE_ID": "ZZ_DATA_OBJECT_ATTRIBUTE_ID",
+                "ZZ_DATA_OBJECT_ATTRIBUTE_ID_FLAT": "DATA_OBJECT_ATTRIBUTE_ID",
                 "ATTRIBUTE_NO": "DATA_OBJECT_ATTRIBUTE_NO",
                 "ATTRIBUTE_NAME": "DATA_OBJECT_ATTRIBUTE_NAME",
                 "ATTRIBUTE_TYPE": "DATA_OBJECT_ATTRIBUTE_TYPE",
@@ -134,6 +134,7 @@ def save_feed(feed_id, data):
             create_feed_attributes(new_feed, data)
         )
     else:
+        feed_id = eval(feed_id)
         feed = {
             "SOURCE_SYSTEM": feed_id["SOURCE_SYSTEM"],
             "FEED_NAME": feed_id["FEED_NAME"],
@@ -188,6 +189,7 @@ def save_data_object(data_object_id, data):
             create_data_object_attributes(new_data_object, data)
         )
     else:
+        data_object_id = eval(data_object_id)
         data_object = {
             "DATA_OBJECT_NAME": data_object_id["DATA_OBJECT_NAME"],
             "TGT_DB_NAME": data_object_id["TGT_DB_NAME"],
@@ -242,27 +244,6 @@ def save_transformation(feed_id, data_object_id, data):
     rd.feed_attr_data_object_attr.dump()
 
     # feed_data_object
-    rd.feed_data_objects.delete_entries(
-        [
-            ["FEED_ID", feed_id],
-            ["DATA_OBJECT_ID", data_object_id]
-        ]
-    )
-
-    rd.feed_data_objects.add_entries(
-        create_feed_data_object(feed_id, data_object_id, data)
-    )
-    rd.feed_data_objects.dump()
-
-
-def create_feed_data_object(feed_id, data_object_id, data):
-
-    field_map = {
-        "src_filter_sql": ["SRC_FILTER_SQL", "str"],
-        "transform_sql_query": ["TRANSFORM_SQL_QUERY", "str"],
-    }
-
-    feed_data_obj = ordereddict()
     complete_feed, _ = rd.feeds.filter_entries_multi(
         [
             ["SOURCE_SYSTEM", feed_id["SOURCE_SYSTEM"]],
@@ -270,9 +251,34 @@ def create_feed_data_object(feed_id, data_object_id, data):
         ]
     )
     complete_feed = complete_feed[0]
+
+    print(f"deleting feed_id:{feed_id}, doi: {data_object_id}")
+    rd.feed_data_objects.delete_entries(
+        [
+            ["FEED_ID", {
+                "FEED_NAME": complete_feed["FEED_NAME"],
+                "DB_NAME": complete_feed["DB_NAME"],
+            }],
+            ["DATA_OBJECT_ID", data_object_id]
+        ]
+    )
+
+    rd.feed_data_objects.add_entries(
+        create_feed_data_objects(complete_feed, data_object_id, data)
+    )
+    rd.feed_data_objects.dump()
+
+
+def create_feed_data_objects(feed_id, data_object_id, data):
+    field_map = {
+        "src_filter_sql": ["SRC_FILTER_SQL", str],
+        "transform_sql_query": ["TRANSFORM_SQL_QUERY", str],
+    }
+
+    feed_data_obj = ordereddict()
     feed_data_obj["FEED_ID"] = util.create_yaml_map(
         **util.build_dict_value_from_keys(
-            complete_feed, ["FEED_NAME", "DB_NAME"]
+            feed_id, ["FEED_NAME", "DB_NAME"]
         )
     )
     feed_data_obj["DATA_OBJECT_ID"] = util.create_yaml_map(
@@ -283,13 +289,14 @@ def create_feed_data_object(feed_id, data_object_id, data):
     for incoming, existing in field_map.items():
         if data.get(incoming):
             feed_data_obj[existing[0]] = existing[1](data[incoming])
-
-    return feed_data_obj
+    print(f"created feed data obj: {feed_data_obj}")
+    return [feed_data_obj]
 
 
 def create_feed_attr_data_object_attrs(data):
     res = []
     for row in data["attribute_mappings"]:
+
         new_attr = ordereddict()
         new_attr["FEED_ATTRIBUTE_ID"] = util.create_yaml_map(
             **util.flatten_dict(row["FEED_ATTRIBUTE_ID"])
