@@ -2,6 +2,7 @@ import flask
 from flask import Flask, request
 import yaml_reader
 import yaml_processor as yp
+from schema import Schema, And, Use, Optional, Or
 
 
 app = Flask(__name__)
@@ -94,16 +95,29 @@ def save_feed(feed_id):
     2. update rd.feed_attributes.entries
     parameters:
         feed_id: serialised feed_id or 'NEW_FEED'
-    in request.json
-        if NEW_FEED:
-            new_feed_sourcesystem, new_feed_name,
-            new_feed_filetype, new_feed_dbname
-        else:
-            feed_attributes [{
-                FEED_ATTRIBUTE_ID,ATTRIBUTE_NAME,ATTRIBUTE_NO,ATTRIBUTE_TYPE,PRIMARY_KEY_IND,NULLABLE_IND,
-                ATTRIBUTE_LENGTH,ATTRIBUTE_PRECISION,NESTED_ATTRIBUTE_TYPE,NESTED_ATTRIBUTE_PATH,NESTED_LEVEL
-            }]
     """
+    schema = Schema(
+        {
+            Optional("new_feed_source_system"): str,
+            Optional("new_feed_name"): str,
+            Optional("new_feed_filetype"): str,
+            Optional("new_feed_dbname"): str,
+            "feed_attributes": [{
+                "ATTRIBUTE_NAME": And(str, len),
+                "ATTRIBUTE_NO": Use(int),
+                "ATTRIBUTE_TYPE": And(str, len),
+                "PRIMARY_KEY_IND": And(str, lambda s: s in ["Y", "N"]),
+                "NULLABLE_IND": And(str, lambda s: s in ["Y", "N"]),
+                Optional("ATTRIBUTE_LENGTH"): And(Use(int), lambda n: n > 0),
+                Optional("ATTRIBUTE_PRECISION"): And(str, len),
+                Optional("NESTED_ATTRIBUTE_TYPE"): And(str, len),
+                Optional("NESTED_ATTRIBUTE_PATH"): And(str, len),
+                Optional("NESTED_LEVEL"): And(Use(int), lambda n: n > 0),
+            }]
+        }, ignore_extra_keys=True
+    )
+    schema.validate(request.json)
+    app.logger.info("feed attr schema validated")
     yp.save_feed(feed_id, request.json)
     return {"msg": "updated temp_feed.yaml, temp_feed_attribute.yaml"}
 
@@ -117,14 +131,24 @@ def save_data_object(data_object_id):
     parameters:
         data_object_id: serialised data_object_id or 'NEW_DATA_OBJECT'
     in request.json
-        if NEW_DATA_OBJECT:
-            new_data_object_dbname, new_data_object_name
-        else:
-            data_object_attributes [{
-                DATA_OBJECT_ATTRIBUTE_ID, ATTRIBUTE_NO, ATTRIBUTE_NAME
-                ATTRIBUTE_TYPE, PRIMARY_KEY_IND
-            }]
+        data_object_attributes [{
+            DATA_OBJECT_ATTRIBUTE_ID, ATTRIBUTE_NO, ATTRIBUTE_NAME
+            ATTRIBUTE_TYPE, PRIMARY_KEY_IND
+        }]
     """
+    schema = Schema(
+        {
+            Optional("new_data_object_dbname"): str,
+            Optional("new_data_object_name"): str,
+            "data_object_attributes": [{
+                "ATTRIBUTE_NAME": And(str, len),
+                "ATTRIBUTE_NO": Use(int),
+                "ATTRIBUTE_TYPE": And(str, len),
+                "PRIMARY_KEY_IND": And(str, lambda s: s in ["Y", "N"]),
+            }]
+        }, ignore_extra_keys=True
+    )
+    schema.validate(request.json)
     yp.save_data_object(data_object_id, request.json)
     return {
         "msg":
@@ -147,28 +171,37 @@ def save_transformation(feed_id, data_object_id):
         data_object_id:
             DATA_OBJECT_NAME
             TGT_DB_NAME
-    in request.json
-        attribute_mappings:
-            DATA_OBJECT_ATTRIBUTE_ID:
-                ATTRIBUTE_NAME:
-                DATA_OBJECT_ID:
-                    DATA_OBJECT_NAME
-                    TGT_DB_NAME
-            DATA_OBJECT_ATTRIBUTE_NAME
-            DATA_OBJECT_ATTRIBUTE_NO
-            DATA_OBJECT_ATTRIBUTE_TYPE
-            FEED_ATTRIBUTE_ID
-                ATTRIBUTE_NAME
-                FEED_ID
-                    FEED_NAME
-                    SOURCE_SYSTEM
-            FEED_ATTRIBUTE_NAME
-            FEED_ATTRIBUTE_NO
-            FEED_ATTRIBUTE_TYPE
-            TRANSFORM_FN
-        transform_sql_query:
-        src_filter_sql:
     """
+    schema = Schema(
+        {
+            "attribute_mappings": [{
+                "DATA_OBJECT_ATTRIBUTE_ID": {
+                    "ATTRIBUTE_NAME": And(str, len),
+                    "DATA_OBJECT_ID": {
+                        "DATA_OBJECT_NAME": And(str, len),
+                        "TGT_DB_NAME": And(str, len)
+                    }
+                },
+                "DATA_OBJECT_ATTRIBUTE_NAME": Use(str, len),
+                "DATA_OBJECT_ATTRIBUTE_NO": And(Use(int), lambda n: n > 0),
+                "DATA_OBJECT_ATTRIBUTE_TYPE": And(str, len),
+                "FEED_ATTRIBUTE_ID": {
+                    "ATTRIBUTE_NAME": Use(str, len),
+                    "FEED_ID": {
+                        "FEED_NAME": Use(str, len),
+                        "SOURCE_SYSTEM": Use(str, len)
+                    }
+                },
+                "FEED_ATTRIBUTE_NAME": Use(str, len),
+                "FEED_ATTRIBUTE_NO": And(Use(int), lambda n: n > 0),
+                "FEED_ATTRIBUTE_TYPE": And(str, len),
+                "TRANSFORM_FN": Or(None, And(str, len)),
+            }],
+            "transform_sql_query": str,
+            "src_filter_sql": str
+        }, ignore_extra_keys=True
+    )
+    schema.validate(request.json)
     yp.save_transformation(eval(feed_id), eval(data_object_id), request.json)
     return {
         "msg": "updated feed_attr_data_object_attr.yaml"
