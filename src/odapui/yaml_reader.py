@@ -73,11 +73,29 @@ class Table:
             }
 
     def add_entry(self, entry):
+        ex, _ = self.filter_entries_multi(
+            [
+                [key, entry[key]]
+                for key in self.keys
+            ]
+        )
+        if ex:
+            raise ValueError(f"cannot add {entry}. same key exists")
         self.entries.append(entry)
         self.build_columns()
 
     def add_entries(self, entries):
-        self.entries.extend(entries)        
+        for to_add in entries:
+            ex, _ = self.filter_entries_multi(
+                [
+                    [key, to_add[key]]
+                    for key in self.keys
+                ]
+            )
+            if ex:
+                print(ex)
+                raise ValueError(f"cannot add {to_add}. same key exists")
+        self.entries.extend(entries)
         self.build_columns()
 
     def delete_entries(self, conds: typing.List[typing.List]):

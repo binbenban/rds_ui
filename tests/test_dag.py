@@ -1,8 +1,6 @@
 from odapui import yaml_processor as yp
 from odapui import yaml_reader
-from pprint import pprint
 import pytest
-import copy
 
 
 def test_read_dag():
@@ -45,6 +43,7 @@ def save_dag_data():
 
 def test_save_dag_new(save_dag_data):
     rd = yaml_reader.reader_instance()
+    rd.refresh()
     dags_count_before = len(rd.dags.entries)
     loads_count_before = len(rd.loads.entries)
     dodos_count_before = len(rd.data_object_data_objects.entries)
@@ -55,7 +54,7 @@ def test_save_dag_new(save_dag_data):
     assert rd.loads.filter_entries("LOAD_NAME", "cdc.fds_aa.somedata")
     assert len(rd.data_object_data_objects.entries) == dodos_count_before + 1
     dodo = rd.data_object_data_objects.filter_entries(
-        "LOAD_ID", 
+        "LOAD_ID",
         {
             "LOAD_NAME": "cdc.fds_aa.somedata"
         }
@@ -73,6 +72,7 @@ def test_save_dag_new(save_dag_data):
 
 def test_save_dag_update(save_dag_data):
     rd = yaml_reader.reader_instance()
+    rd.refresh()
     dag_id = {
         "DAG_NAME": "live_ingest_pim_products"
     }
