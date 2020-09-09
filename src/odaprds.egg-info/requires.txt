@@ -1,7 +1,0 @@
-flask
-schema
-ruamel.yaml
-arrow
-
-[testing]
-pytest

@@ -157,7 +157,7 @@
                     type: 'GET',
                 }).done(function(data) {
                     cell.getRow().update({
-                        "FEED_ATTRIBUTE_ID": data["ZZ_FEED_ATTRIBUTE_ID"],
+                        "FEED_ATTRIBUTE_ID": data["ZZ_FEED_ATTRIBUTE_ID_FLAT"],
                         "FEED_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
                         "FEED_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
                     })
@@ -168,7 +168,7 @@
                     type: 'GET',
                 }).done(function(data) {
                     cell.getRow().update({
-                        "DATA_OBJECT_ATTRIBUTE_ID": data["ZZ_DATA_OBJECT_ATTRIBUTE_ID"],
+                        "DATA_OBJECT_ATTRIBUTE_ID": data["ZZ_DATA_OBJECT_ATTRIBUTE_ID_FLAT"],
                         "DATA_OBJECT_ATTRIBUTE_NAME": data["ATTRIBUTE_NAME"],
                         "DATA_OBJECT_ATTRIBUTE_TYPE": data["ATTRIBUTE_TYPE"]
                     })

@@ -1,6 +1,7 @@
-import util
-import yaml_reader
+from . import util
+from . import yaml_reader
 from ruamel.yaml.comments import CommentedMap as ordereddict
+import copy
 
 
 rd = yaml_reader.reader_instance()
@@ -299,11 +300,129 @@ def create_feed_attr_data_object_attrs(data):
 
         new_attr = ordereddict()
         new_attr["FEED_ATTRIBUTE_ID"] = util.create_yaml_map(
-            **util.flatten_dict(row["FEED_ATTRIBUTE_ID"])
+            **row["FEED_ATTRIBUTE_ID"]
         )
         new_attr["DATA_OBJECT_ATTRIBUTE_ID"] = util.create_yaml_map(
-            **util.flatten_dict(row["DATA_OBJECT_ATTRIBUTE_ID"])
+            **row["DATA_OBJECT_ATTRIBUTE_ID"]
         )
         new_attr["TRANSFORM_FN"] = row.get("TRANSFORM_FN")
         res.append(new_attr)
     return res
+
+
+def read_dag(dag_id):
+    # read loads of a dag - load.yaml
+    # read data objects for all loads - data_object_data_object.yaml
+    loads = rd.loads.filter_entries("DAG_ID", dag_id)
+
+    res = []
+    for load in loads:
+        temp = ordereddict()
+        temp.update(load)
+        dodo = rd.data_object_data_objects.filter_entries(
+            "LOAD_ID", load["ZZ_LOAD_ID"]
+        )
+        if dodo:
+            temp.update(dodo[0])
+        res.append(temp)
+    return res
+
+
+def save_dag(dag_id, data):
+    dodos = create_data_object_data_objects(data)
+
+    if dag_id == "NEW_DAG":
+        dag = ordereddict({
+            "DAG_NAME": data["new_dag_name"],
+            "DAG_DESCRIPTION": data["new_dag_description"],
+        })
+        rd.dags.add_entry(dag)
+
+        loads = create_loads(dag, data)
+        # these load names should not already exist
+        existing_load_names, _ = rd.loads.filter_entries_any(
+            "LOAD_NAME",
+            [e["LOAD_NAME"] for e in loads]
+        )
+        if existing_load_names:
+            raise ValueError(
+                f"Cannot create loads - these exists: {existing_load_names}"
+            )
+        rd.loads.add_entries(loads)
+
+        rd.data_object_data_objects.add_entries(dodos)
+    else:
+        dag_id = eval(dag_id)
+        incoming_loads = create_loads(dag_id, data)
+        rd.loads.delete_entries(
+            [
+                ["DAG_ID", dag_id]
+            ]
+        )
+        rd.loads.add_entries(incoming_loads)
+
+        # can keep all relevant data_ object_data_objects
+        for to_add in dodos:
+            rd.data_object_data_objects.delete_entries(
+                [
+                    ["LOAD_ID", to_add["LOAD_ID"]]
+                ]
+            )
+        rd.data_object_data_objects.add_entries(dodos)
+
+
+def create_loads(values, data):
+    field_map = {
+        "LOAD_NAME": ["LOAD_NAME", str],
+        "LOAD_DESC": ["LOAD_DESC", str],
+        "LOAD_EXECUTE_TYPE": ["LOAD_EXECUTE_TYPE", str],
+        "LOAD_EXECUTE_LOGIC_NAME": ["LOAD_EXECUTE_LOGIC_NAME", str],
+    }
+    loads = []
+
+    for row in data["dag_details"]:
+        new_load = ordereddict()
+        new_load["DAG_ID"] = util.create_yaml_map(
+            **util.build_dict_value_from_keys(
+                values, ["DAG_NAME"]
+            )
+        )
+        for incoming, existing in field_map.items():
+            if row.get(incoming):
+                new_load[existing[0]] = existing[1](row[incoming])
+        new_load["LOAD_WAREHOUSE_CONFIG_ID"] = util.create_yaml_map(
+            **{
+                "LOAD_WAREHOUSE_CONFIG_NAME": row["LOAD_WAREHOUSE_CONFIG_NAME"]
+            }
+        )
+        loads.append(new_load)
+
+    return loads
+
+
+def create_data_object_data_objects(data):
+    dodos = []
+    for row in data["dag_details"]:
+        new_dodo = ordereddict()
+        new_dodo["LOAD_ID"] = util.create_yaml_map(
+            **util.build_dict_value_from_keys(
+                row, ["LOAD_NAME"]
+            )
+        )
+        src_data_object_id = row["DATA_OBJECT_ID_CDS"]
+        tgt_data_object_id = copy.deepcopy(src_data_object_id)
+        tgt_data_object_id["TGT_DB_NAME"] = \
+            tgt_data_object_id["TGT_DB_NAME"].replace("cds", "fds")
+        new_dodo["LOAD_TARGET_DATA_OBJECT_ID"] = util.create_yaml_map(
+            **util.build_dict_value_from_keys(
+                tgt_data_object_id, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
+            )
+        )
+        new_dodo["LOAD_SOURCE_DATA_OBJECT_ID"] = util.create_yaml_map(
+            **util.build_dict_value_from_keys(
+                src_data_object_id, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
+            )
+        )
+        new_dodo["LOAD_DEPENDENCY_TYPE"] = "Hard"
+        dodos.append(new_dodo)
+    return dodos

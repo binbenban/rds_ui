@@ -1,4 +1,4 @@
-import util
+from . import util
 from typing import List
 from ruamel.yaml import YAML
 import logging
@@ -83,6 +83,20 @@ class Table:
     def delete_entries(self, conds: typing.List[typing.List]):
         met, not_met = self.filter_entries_multi(conds)
         self.entries = not_met
+        return met
+
+    def delete_entries_any(self, filter_by, filter_vals):
+        met, not_met = self.filter_entries_any(filter_by, filter_vals)
+        self.entries = not_met
+
+    def filter_entries_any(self, filter_by, filter_vals, order_by=None):
+        met, not_met = [], []
+        for x in self.entries:
+            if x[filter_by] in filter_vals:
+                met.append(x)
+            else:
+                not_met.append(x)
+        return copy.deepcopy(met), copy.deepcopy(not_met)
 
     def filter_entries(self, filter_by, filter_val, order_by=None):
         met, not_met = self.filter_entries_multi(
@@ -91,7 +105,7 @@ class Table:
             ],
             order_by
         )
-        return met
+        return copy.deepcopy(met)
 
     def filter_entries_multi(
         self, conds: typing.List[typing.List], order_by=None
@@ -110,7 +124,7 @@ class Table:
                 not_met.append(x)
         if order_by:
             met.sort(key=lambda x: x[order_by])
-        return met, not_met
+        return copy.deepcopy(met), copy.deepcopy(not_met)
 
     """
     name: "FEED_ID"
@@ -235,5 +249,9 @@ class Reader:
             ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"])
         self.feed_data_objects = Table(
             "feed_data_object", ["FEED_ID", "DATA_OBJECT_ID"])
+        self.dags = Table("dag", ["DAG_NAME"])
+        self.loads = Table("load", ["LOAD_NAME"])
+        self.data_object_data_objects = Table(
+            "data_object_data_object", ["LOAD_ID"])
 
         print(f"finished refreshing all yamls...{arrow.now()}")

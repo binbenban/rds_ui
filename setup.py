@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from os import path
 
 
-name = "odaprds"
+name = "odapui"
 here = path.abspath(path.dirname(__file__))
 
 # get the dependencies and installs

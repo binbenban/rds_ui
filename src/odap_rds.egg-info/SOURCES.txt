@@ -1,7 +1,0 @@
-README.md
-setup.py
-src/odap_rds.egg-info/PKG-INFO
-src/odap_rds.egg-info/SOURCES.txt
-src/odap_rds.egg-info/dependency_links.txt
-src/odap_rds.egg-info/requires.txt
-src/odap_rds.egg-info/top_level.txt

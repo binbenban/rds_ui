@@ -1,7 +1,0 @@
-README.md
-setup.py
-src/odaputil.egg-info/PKG-INFO
-src/odaputil.egg-info/SOURCES.txt
-src/odaputil.egg-info/dependency_links.txt
-src/odaputil.egg-info/requires.txt
-src/odaputil.egg-info/top_level.txt

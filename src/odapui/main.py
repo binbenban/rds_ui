@@ -130,11 +130,6 @@ def save_data_object(data_object_id):
     2. update rd.data_object_attributes.entries
     parameters:
         data_object_id: serialised data_object_id or 'NEW_DATA_OBJECT'
-    in request.json
-        data_object_attributes [{
-            DATA_OBJECT_ATTRIBUTE_ID, ATTRIBUTE_NO, ATTRIBUTE_NAME
-            ATTRIBUTE_TYPE, PRIMARY_KEY_IND
-        }]
     """
     schema = Schema(
         {
@@ -163,39 +158,21 @@ def save_transformation(feed_id, data_object_id):
     in attr mapping entries
     - delete where feed_attr_id and data_object_attr_id match (need flatten)
     add new entries from request.json to attr mapping entries
-
-    parameters:
-        feed_id:
-            SOURCE_SYSTEM':
-            'FEED_NAME':
-        data_object_id:
-            DATA_OBJECT_NAME
-            TGT_DB_NAME
     """
     schema = Schema(
         {
             "attribute_mappings": [{
                 "DATA_OBJECT_ATTRIBUTE_ID": {
                     "ATTRIBUTE_NAME": And(str, len),
-                    "DATA_OBJECT_ID": {
-                        "DATA_OBJECT_NAME": And(str, len),
-                        "TGT_DB_NAME": And(str, len)
-                    }
+                    "DATA_OBJECT_NAME": And(str, len),
+                    "TGT_DB_NAME": And(str, len)
                 },
-                "DATA_OBJECT_ATTRIBUTE_NAME": Use(str, len),
-                "DATA_OBJECT_ATTRIBUTE_NO": And(Use(int), lambda n: n > 0),
-                "DATA_OBJECT_ATTRIBUTE_TYPE": And(str, len),
                 "FEED_ATTRIBUTE_ID": {
                     "ATTRIBUTE_NAME": Use(str, len),
-                    "FEED_ID": {
-                        "FEED_NAME": Use(str, len),
-                        "SOURCE_SYSTEM": Use(str, len)
-                    }
+                    "FEED_NAME": Use(str, len),
+                    "SOURCE_SYSTEM": Use(str, len)
                 },
-                "FEED_ATTRIBUTE_NAME": Use(str, len),
-                "FEED_ATTRIBUTE_NO": And(Use(int), lambda n: n > 0),
-                "FEED_ATTRIBUTE_TYPE": And(str, len),
-                "TRANSFORM_FN": Or(None, And(str, len)),
+                Optional("TRANSFORM_FN"): Or(None, And(str, len)),
             }],
             "transform_sql_query": str,
             "src_filter_sql": str
@@ -205,6 +182,53 @@ def save_transformation(feed_id, data_object_id):
     yp.save_transformation(eval(feed_id), eval(data_object_id), request.json)
     return {
         "msg": "updated feed_attr_data_object_attr.yaml"
+    }
+
+
+def read_dag_data_objects_loads(dag_id):
+    schema = Schema(
+        {
+            "dag_id": {
+                "DAG_NAME": And(str, len)
+            }
+        }
+    )
+    dag_id = eval(dag_id)
+    schema.validate(dag_id)
+    res = yp.read_dag_data_objects_loads(dag_id)
+    return flask.jsonify(res)
+
+
+def save_dag(dag_id):
+    """
+    save a dag
+    1. update rd.dags
+    2. update rd.loads
+    2. update rd.data_object_data_objects
+    parameters:
+        dag_id: serialised data_object_id or 'NEW_DAG'
+    """
+    schema = Schema(
+        {
+            Optional("new_dag_name"): str,
+            Optional("new_dag_description"): str,
+            "dag_details": [{
+                "DATA_OBJECT_ID_CDS": {
+                    "DATA_OBJECT_NAME": And(str, len),
+                    "TGT_DB_NAME": And(str, len)
+                },
+                "LOAD_NAME": And(str, len),
+                "LOAD_DESC": And(str, len),
+                "LOAD_EXECUTE_TYPE": And(str, len),
+                "LOAD_EXECUTE_LOGIC_NAME": And(str, len),
+                "LOAD_WAREHOUSE_CONFIG_NAME": And(str, len),
+            }]
+        }, ignore_extra_keys=True
+    )
+    schema.validate(request.json)
+    yp.save_dag(dag_id, request.json)
+    return {
+        "msg": "updated"
     }
 
 
