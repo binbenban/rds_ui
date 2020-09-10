@@ -1,4 +1,4 @@
-from . import util
+from odapui import util
 from typing import List
 from ruamel.yaml import YAML
 import logging

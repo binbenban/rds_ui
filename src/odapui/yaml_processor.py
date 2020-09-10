@@ -1,5 +1,5 @@
-from . import util
-from . import yaml_reader
+from odapui import util
+from odapui import yaml_reader
 from ruamel.yaml.comments import CommentedMap as ordereddict
 import copy
 
@@ -95,7 +95,7 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
     return res
 
 
-def read_table_transformation_by_feed_id_data_object_id(
+def read_table_transformation(
     feed_id, data_object_id
 ):
     feeds = rd.feeds.filter_entries("ZZ_FEED_ID", feed_id)
@@ -297,6 +297,9 @@ def create_feed_data_objects(feed_id, data_object_id, data):
 def create_feed_attr_data_object_attrs(data):
     res = []
     for row in data["attribute_mappings"]:
+        if (not row.get("FEED_ATTRIBUTE_ID")
+                or not row.get("DATA_OBJECT_ATTRIBUTE_ID")):
+            continue
 
         new_attr = ordereddict()
         new_attr["FEED_ATTRIBUTE_ID"] = util.create_yaml_map(
@@ -310,7 +313,7 @@ def create_feed_attr_data_object_attrs(data):
     return res
 
 
-def read_dag(dag_id):
+def read_one_dag(dag_id):
     # read loads of a dag - load.yaml
     # read data objects for all loads - data_object_data_object.yaml
     loads = rd.loads.filter_entries("DAG_ID", dag_id)
@@ -319,11 +322,15 @@ def read_dag(dag_id):
     for load in loads:
         temp = ordereddict()
         temp.update(load)
+        temp["LOAD_WAREHOUSE_CONFIG_NAME"] = \
+            load["LOAD_WAREHOUSE_CONFIG_ID"]["LOAD_WAREHOUSE_CONFIG_NAME"]
         dodo = rd.data_object_data_objects.filter_entries(
             "LOAD_ID", load["ZZ_LOAD_ID"]
         )
         if dodo:
             temp.update(dodo[0])
+            temp.update(dodo[0]["LOAD_SOURCE_DATA_OBJECT_ID"])
+        # TODO validate schema
         res.append(temp)
     return res
 
@@ -354,14 +361,19 @@ def save_dag(dag_id, data):
     else:
         dag_id = eval(dag_id)
         incoming_loads = create_loads(dag_id, data)
-        rd.loads.delete_entries(
+        deleted_loads = rd.loads.delete_entries(
             [
                 ["DAG_ID", dag_id]
             ]
         )
         rd.loads.add_entries(incoming_loads)
 
-        # can keep all relevant data_ object_data_objects
+        # delete relevant data_object_data_objects
+        rd.data_object_data_objects.delete_entries_any(
+            "LOAD_ID",
+            [x["ZZ_LOAD_ID"] for x in deleted_loads]
+        )
+
         for to_add in dodos:
             rd.data_object_data_objects.delete_entries(
                 [
@@ -369,6 +381,10 @@ def save_dag(dag_id, data):
                 ]
             )
         rd.data_object_data_objects.add_entries(dodos)
+
+    rd.dags.dump()
+    rd.loads.dump()
+    rd.data_object_data_objects.dump()
 
 
 def create_loads(values, data):
@@ -409,19 +425,16 @@ def create_data_object_data_objects(data):
                 row, ["LOAD_NAME"]
             )
         )
-        src_data_object_id = row["DATA_OBJECT_ID_CDS"]
-        tgt_data_object_id = copy.deepcopy(src_data_object_id)
-        tgt_data_object_id["TGT_DB_NAME"] = \
-            tgt_data_object_id["TGT_DB_NAME"].replace("cds", "fds")
+        src_data_object_name = row["DATA_OBJECT_NAME"]
+        src_data_object_tgt_db_name = row["TGT_DB_NAME"]
+
         new_dodo["LOAD_TARGET_DATA_OBJECT_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
-                tgt_data_object_id, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
-            )
+            DATA_OBJECT_NAME=src_data_object_name,
+            TGT_DB_NAME=src_data_object_tgt_db_name.replace("cds", "fds")
         )
         new_dodo["LOAD_SOURCE_DATA_OBJECT_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
-                src_data_object_id, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
-            )
+            DATA_OBJECT_NAME=src_data_object_name,
+            TGT_DB_NAME=src_data_object_tgt_db_name
         )
         new_dodo["LOAD_DEPENDENCY_TYPE"] = "Hard"
         dodos.append(new_dodo)

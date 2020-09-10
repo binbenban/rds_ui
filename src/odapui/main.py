@@ -9,14 +9,19 @@ app = Flask(__name__)
 rd = yaml_reader.reader_instance()
 
 
-@app.route("/")
-def landing():
+@app.route("/feed")
+def read_feeds():
     return flask.render_template(
         "feeds.html",
         title="RDS Visualizer",
         feeds=rd.feeds.entries,
         data_objects=rd.data_objects.entries,
     )
+
+
+@app.route("/read_data_objects")
+def read_data_objects():
+    return flask.jsonify(rd.data_objects.entries)
 
 
 @app.route("/read_feed_attributes_by_feed_id/<feed_id>")
@@ -76,12 +81,12 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
 
 
 @app.route(
-    "/read_table_transformation_by_feed_id_data_object_id/<feed_id>/<data_object_id>"
+    "/read_table_transformation/<feed_id>/<data_object_id>"
 )
-def read_table_transformation_by_feed_id_data_object_id(
+def read_table_transformation(
     feed_id, data_object_id
 ):
-    res = yp.read_table_transformation_by_feed_id_data_object_id(
+    res = yp.read_table_transformation(
         eval(feed_id), eval(data_object_id)
     )
     return flask.jsonify(res)
@@ -162,12 +167,12 @@ def save_transformation(feed_id, data_object_id):
     schema = Schema(
         {
             "attribute_mappings": [{
-                "DATA_OBJECT_ATTRIBUTE_ID": {
+                Optional("DATA_OBJECT_ATTRIBUTE_ID"): {
                     "ATTRIBUTE_NAME": And(str, len),
                     "DATA_OBJECT_NAME": And(str, len),
                     "TGT_DB_NAME": And(str, len)
                 },
-                "FEED_ATTRIBUTE_ID": {
+                Optional("FEED_ATTRIBUTE_ID"): {
                     "ATTRIBUTE_NAME": Use(str, len),
                     "FEED_NAME": Use(str, len),
                     "SOURCE_SYSTEM": Use(str, len)
@@ -185,20 +190,29 @@ def save_transformation(feed_id, data_object_id):
     }
 
 
-def read_dag_data_objects_loads(dag_id):
+@app.route("/dag")
+def read_dags():
+    return flask.render_template(
+        "dags.html",
+        title="RDS UI",
+        dags=rd.dags.entries,
+    )
+
+
+@app.route("/read_one_dag/<dag_id>")
+def read_one_dag(dag_id):
     schema = Schema(
         {
-            "dag_id": {
-                "DAG_NAME": And(str, len)
-            }
+            "DAG_NAME": And(str, len)
         }
     )
     dag_id = eval(dag_id)
     schema.validate(dag_id)
-    res = yp.read_dag_data_objects_loads(dag_id)
+    res = yp.read_one_dag(dag_id)
     return flask.jsonify(res)
 
 
+@app.route("/save_dag/<dag_id>", methods=["POST"])
 def save_dag(dag_id):
     """
     save a dag
@@ -213,10 +227,8 @@ def save_dag(dag_id):
             Optional("new_dag_name"): str,
             Optional("new_dag_description"): str,
             "dag_details": [{
-                "DATA_OBJECT_ID_CDS": {
-                    "DATA_OBJECT_NAME": And(str, len),
-                    "TGT_DB_NAME": And(str, len)
-                },
+                "DATA_OBJECT_NAME": And(str, len),
+                "TGT_DB_NAME": And(str, len),
                 "LOAD_NAME": And(str, len),
                 "LOAD_DESC": And(str, len),
                 "LOAD_EXECUTE_TYPE": And(str, len),

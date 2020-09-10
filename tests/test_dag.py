@@ -4,7 +4,7 @@ import pytest
 
 
 def test_read_dag():
-    res = yp.read_dag({
+    res = yp.read_one_dag({
         "DAG_NAME": "live_ingest_switch"
     })
     assert len(res) == 2
@@ -26,10 +26,8 @@ def save_dag_data():
         "new_dag_description": "test_dag this is description",
         "dag_details": [
             {
-                "DATA_OBJECT_ID_CDS": {
-                    "DATA_OBJECT_NAME": "somedata",
-                    "TGT_DB_NAME": "cds_aa",
-                },
+                "DATA_OBJECT_NAME": "somedata",
+                "TGT_DB_NAME": "cds_aa",
                 "LOAD_NAME": "cdc.fds_aa.somedata",
                 "LOAD_DESC": "Execute CDC to maintain for somedata",
                 "LOAD_EXECUTE_TYPE": "FDS_CDC",
@@ -76,15 +74,35 @@ def test_save_dag_update(save_dag_data):
     dag_id = {
         "DAG_NAME": "live_ingest_pim_products"
     }
+    loads_before = rd.loads.filter_entries("DAG_ID", dag_id)
+    all_loads_count = len(rd.loads.entries)
+    all_dags_count = len(rd.dags.entries)
+    dodos_before, _ = rd.data_object_data_objects.filter_entries_any(
+        "LOAD_ID",
+        [l["ZZ_LOAD_ID"] for l in loads_before]
+    )
+    all_dodos_count = len(rd.data_object_data_objects.entries)
+
+    # update dag and stuff
     yp.save_dag(str(dag_id), save_dag_data)
 
+    # expect dag count = 1
     dags = rd.dags.filter_entries("DAG_NAME", "live_ingest_pim_products") 
     assert len(dags) == 1
 
+    # expect other dags exist
+    assert all_dags_count == len(rd.dags.entries)
+
+    # expect dag has load count = 1
     loads = rd.loads.filter_entries("DAG_ID", dag_id)
     assert len(loads) == 1
     assert loads[0]["LOAD_NAME"] == "cdc.fds_aa.somedata"
 
+    # expect other loads exist
+    assert all_loads_count - len(loads_before) + 1 == \
+        len(rd.loads.entries)
+
+    # expect relevant data object data object created = 1
     dodo = rd.data_object_data_objects.filter_entries(
         "LOAD_ID",
         {
@@ -101,4 +119,13 @@ def test_save_dag_update(save_dag_data):
         "DATA_OBJECT_NAME": "somedata",
         "TGT_DB_NAME": "fds_aa"
     }
-    
+
+    # expect data object data object of previous loads cleared
+    dodo, _ = rd.data_object_data_objects.filter_entries_any(
+        "LOAD_ID", [x["ZZ_LOAD_ID"] for x in loads_before]
+    )
+    assert not dodo
+
+    # expect other dodos still exist
+    assert all_dodos_count - len(dodos_before) + 1 == \
+        len(rd.data_object_data_objects.entries)

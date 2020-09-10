@@ -87,15 +87,6 @@
 </div>
 
 <script type="text/javascript">
-    function changeValueIfEqual(element, ifValue, thenValue) {
-        if (element.value == ifValue) {
-            element.value = thenValue;
-        }
-    }
-
-</script>
-
-<script type="text/javascript">
     var dbg;
     var feed_table = new Tabulator("#feed_table", {
         addRowPos:"bottom",
@@ -197,7 +188,7 @@
 
             // TODO also read the feed_data_object level mapping into a separate textbox
             $.ajax({
-                url: '/read_table_transformation_by_feed_id_data_object_id/' + feed_id + "/" + data_object_id,
+                url: '/read_table_transformation/' + feed_id + "/" + data_object_id,
                 type: 'GET',
             }).done(function(data) {
                 $('#attr_mapping_table_transformation').val(data["TRANSFORM_SQL_QUERY"]);

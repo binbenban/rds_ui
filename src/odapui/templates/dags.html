@@ -1,0 +1,125 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+<div class="w3-container">
+    <h2 class="w3-text-blue">Dag</h2>
+    <p>
+    <label>Choose a Dag or Create New:</label>
+    <select name="dag" class="w3-select w3-border" id="dag_list">
+        <option value="NEW_DAG">---Create New Dag---</option>
+        {% for dag in dags %}
+        <option value="{{ dag['ZZ_DAG_ID'] }}">{{dag['DAG_NAME']}}</option>
+        {% endfor %}
+    </select>
+    </p>
+    <p>
+    <div class="w3-half">
+        <input class="w3-input w3-border" type="text" id="dag_table_new_dag_name" placeholder="New Dag Name">
+    </div>
+    <div class="w3-half">
+        <input class="w3-input w3-border" type="text" id="dag_table_new_dag_description" placeholder="New Dag Description">
+    </div>
+    </p>
+</div>
+
+<div class="w3-container">
+    <p>
+    <table id="dag_table" class="w3-table"></table>
+    </p>
+    <p>
+    <input type="button" class="w3-btn w3-blue" id="dag_table_new_row" value="New Row">
+    <input type="button" class="w3-btn w3-blue" id="dag_table_submit" value="Generate">
+    </p>
+</div>
+
+<script type="text/javascript">
+    var ajaxConfig = {
+        method: "GET",
+        headers: {
+            "Content-type": 'application/json; charset=utf-8',
+        },
+    };
+
+    var dag_table = new Tabulator("#dag_table", {
+        addRowPos:"bottom",
+        movableRows:true,
+        layout:"fitColumns",
+        placeholder:"No Data Set",
+        columns: [
+            {title:"LOAD_SOURCE_DATA_OBJECT_ID", field:"LOAD_SOURCE_DATA_OBJECT_ID", width:120, visible:false},
+            {title:"Data object", field:"DATA_OBJECT_NAME", width:150, editor:"input"},
+            {title:"Target DB", field:"TGT_DB_NAME", width:150, editor:"input"},
+            {title:"Load name", field:"LOAD_NAME", width:200, editor:"input"},
+            {title:"Load desc", field:"LOAD_DESC", width:300, editor:"input"},
+            {title:"Execute type", field:"LOAD_EXECUTE_TYPE", width:150, editor:"input"},
+            {title:"Logic", field:"LOAD_EXECUTE_LOGIC_NAME", width:150, editor:"input"},
+            {title:"Warehouse", field:"LOAD_WAREHOUSE_CONFIG_NAME", width:200, editor:"input"},
+            {formatter:"buttonCross", width:40, align:"center", cellClick: function(e, cell) {cell.getRow().delete();}},
+        ],
+        dataLoaded:function(data) {
+            if (data.length > 0) {
+                // enable dropdown list on certain columns for selection
+                enhanceDagTableAfterSetData();
+            }
+        },
+    });
+
+    // dag list - change
+    $("#dag_list").change(function() {
+        selected_value = $(this).val()
+        if (selected_value == "NEW_DAG") {
+            $("#dag_table_new_dag_name").attr("disabled", false);
+            $("#dag_table_new_dag_description").attr("disabled", false);
+            dag_table.clearData();
+        }
+        else {
+            $("#dag_table_new_dag_name").attr("disabled", true);
+            $("#dag_table_new_dag_description").attr("disabled", true);
+            dag_table.setData("/read_one_dag/"+selected_value, {}, ajaxConfig);
+            // setDataAttrMapTable($(this).val(), $("#data_object_list").val());
+        }
+    });
+
+    $("#dag_table_new_row").click(function() {
+        dag_table.addRow({});
+    })
+
+    $("#dag_table_submit").click(function() {
+        $.ajax({
+            url: '/save_dag/'+$("#dag_list").val(),
+            type: 'POST',
+            data: JSON.stringify({
+                new_dag_name: $("#dag_table_new_dag_name").val(),
+                new_dag_description: $("#dag_table_new_dag_description").val(),
+                dag_details: dag_table.getData()
+            }),
+            contentType: "application/json",
+        }).done(function(data) {
+            alert("new yamls generated");
+        })
+    });
+
+    function enhanceDagTableAfterSetData() {
+        $.ajax({
+            url: '/read_data_objects',
+            type: 'GET',
+        }).done(function(data_objects) {
+            var arr = {};
+            console.log(data_objects);
+            for (var i=0; i<data_objects.length; i++) {
+                var elem = data_objects[i]
+                var label = elem["DATA_OBJECT_NAME"];
+                var val = elem["DATA_OBJECT_NAME"];
+                arr[label] = val;
+            }
+            dag_table.getColumn("DATA_OBJECT_NAME").updateDefinition({
+                "editor": "select",
+                "editorParams": arr
+            });
+        });
+
+    }
+</script>
+
+{% endblock %}
