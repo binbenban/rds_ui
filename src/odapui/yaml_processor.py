@@ -1,7 +1,6 @@
 from odapui import util
 from odapui import yaml_reader
 from ruamel.yaml.comments import CommentedMap as ordereddict
-import copy
 
 
 rd = yaml_reader.reader_instance()

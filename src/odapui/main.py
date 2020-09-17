@@ -65,7 +65,6 @@ def read_one_data_object_attribute(data_object_id, attribute_name):
             ["ATTRIBUTE_NAME", attribute_name],
         ], "ATTRIBUTE_NO"
     )
-    app.logger.info(met)
     if met:
         return flask.jsonify(met[0])
     else:
@@ -77,6 +76,28 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
     res = yp.map_feed_attr_data_object_attr(
         eval(feed_id), eval(data_object_id)
     )
+    schema = Schema([
+        {
+            Optional("FEED_ATTRIBUTE_ID"): {
+                "SOURCE_SYSTEM": And(str, len),
+                "FEED_NAME": And(str, len),
+                "ATTRIBUTE_NAME": And(str, len),
+            },
+            Optional("FEED_ATTRIBUTE_NAME"): And(str, len),
+            Optional("FEED_ATTRIBUTE_TYPE"): And(str, len),
+            Optional("FEED_ATTRIBUTE_NO"): Use(int),
+            Optional("DATA_OBJECT_ATTRIBUTE_ID"): {
+                "DATA_OBJECT_NAME": And(str, len),
+                "TGT_DB_NAME": And(str, len),
+                "ATTRIBUTE_NAME": And(str, len),
+            },
+            Optional("DATA_OBJECT_ATTRIBUTE_NO"): Use(int),
+            Optional("DATA_OBJECT_ATTRIBUTE_NAME"): And(str, len),
+            Optional("DATA_OBJECT_ATTRIBUTE_TYPE"): And(str, len),
+            Optional("TRANSFORM_FN"): Or(None, str),
+        }], ignore_extra_keys=True
+    )
+    schema.validate(res)
     return flask.jsonify(res)
 
 
@@ -89,6 +110,13 @@ def read_table_transformation(
     res = yp.read_table_transformation(
         eval(feed_id), eval(data_object_id)
     )
+    schema = Schema(
+        {
+            Optional("SRC_FILTER_SQL"): Or(None, str),
+            Optional("TRANSFORM_SQL_QUERY"): Or(None, str),
+        }
+    )
+    schema.validate(res)
     return flask.jsonify(res)
 
 
@@ -177,7 +205,7 @@ def save_transformation(feed_id, data_object_id):
                     "FEED_NAME": Use(str, len),
                     "SOURCE_SYSTEM": Use(str, len)
                 },
-                Optional("TRANSFORM_FN"): Or(None, And(str, len)),
+                Optional("TRANSFORM_FN"): Or(None, str),
             }],
             "transform_sql_query": str,
             "src_filter_sql": str

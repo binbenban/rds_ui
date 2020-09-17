@@ -15,7 +15,7 @@ yaml.width = 40096
 yaml.indent(mapping=4, sequence=6, offset=4)
 
 reader = None
-READ_FROM_PICKLE = True
+READ_FROM_PICKLE = False
 
 
 def read_metadata_yaml(table_name: str) -> dict:
