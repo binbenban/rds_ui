@@ -272,5 +272,11 @@ def save_dag(dag_id):
     }
 
 
+@app.route("/refresh_all")
+def refresh_all():
+    rd.refresh()
+    return "done"
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000, debug=True)

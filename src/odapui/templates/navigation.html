@@ -1,10 +1,24 @@
 <header>
-    <nav>
-   </nav>
- </header>
+  <nav>
+  </nav>
+</header>
 
- <div class="navbar">
+<script>
+  function confirm_reload() {
+    res = confirm("This will clear all your operations not persisted. Wait for confirmation");
+    if (res) {
+      $.ajax({
+            url: "/refresh_all",
+            type: "GET"
+        }).done(function(data) {
+            alert("Refreshed");
+        })
+    }
+  }
+</script>
+
+<div class="navbar">
   <a href="/feed">Feed</a>
   <a href="/dag">Dag</a>
-  <a href="#About">About</a>
+  <a href="javascript:confirm_reload()">Refresh</a>
 </div>
