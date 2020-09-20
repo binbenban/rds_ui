@@ -166,10 +166,8 @@ def create_feed_attributes(values: dict, data):
 
     for row in data["feed_attributes"]:
         new_feed_attribute = ordereddict()
-        new_feed_attribute["FEED_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
+        new_feed_attribute["FEED_ID"] = util.build_dict_value_from_keys(
                 values, ["SOURCE_SYSTEM", "FEED_NAME"]
-            )
         )
         for incoming, existing in field_map.items():
             if row.get(incoming):
@@ -217,11 +215,10 @@ def create_data_object_attributes(values: dict, data):
 
     for row in data["data_object_attributes"]:
         new_data_object_attr = ordereddict()
-        new_data_object_attr["DATA_OBJECT_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
+        new_data_object_attr["DATA_OBJECT_ID"] = \
+            util.build_dict_value_from_keys(
                 values, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
             )
-        )
         for incoming, existing in field_map.items():
             if row.get(incoming):
                 new_data_object_attr[existing[0]] = existing[1](row[incoming])
@@ -276,15 +273,11 @@ def create_feed_data_objects(feed_id, data_object_id, data):
     }
 
     feed_data_obj = ordereddict()
-    feed_data_obj["FEED_ID"] = util.create_yaml_map(
-        **util.build_dict_value_from_keys(
+    feed_data_obj["FEED_ID"] = util.build_dict_value_from_keys(
             feed_id, ["FEED_NAME", "DB_NAME"]
-        )
     )
-    feed_data_obj["DATA_OBJECT_ID"] = util.create_yaml_map(
-        **util.build_dict_value_from_keys(
+    feed_data_obj["DATA_OBJECT_ID"] = util.build_dict_value_from_keys(
             data_object_id, ["DATA_OBJECT_NAME", "TGT_DB_NAME"]
-        )
     )
     for incoming, existing in field_map.items():
         if data.get(incoming):
@@ -301,12 +294,8 @@ def create_feed_attr_data_object_attrs(data):
             continue
 
         new_attr = ordereddict()
-        new_attr["FEED_ATTRIBUTE_ID"] = util.create_yaml_map(
-            **row["FEED_ATTRIBUTE_ID"]
-        )
-        new_attr["DATA_OBJECT_ATTRIBUTE_ID"] = util.create_yaml_map(
-            **row["DATA_OBJECT_ATTRIBUTE_ID"]
-        )
+        new_attr["FEED_ATTRIBUTE_ID"] = row["FEED_ATTRIBUTE_ID"]
+        new_attr["DATA_OBJECT_ATTRIBUTE_ID"] = row["DATA_OBJECT_ATTRIBUTE_ID"]
         new_attr["TRANSFORM_FN"] = row.get("TRANSFORM_FN")
         res.append(new_attr)
     return res
@@ -397,19 +386,15 @@ def create_loads(values, data):
 
     for row in data["dag_details"]:
         new_load = ordereddict()
-        new_load["DAG_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
+        new_load["DAG_ID"] = util.build_dict_value_from_keys(
                 values, ["DAG_NAME"]
-            )
         )
         for incoming, existing in field_map.items():
             if row.get(incoming):
                 new_load[existing[0]] = existing[1](row[incoming])
-        new_load["LOAD_WAREHOUSE_CONFIG_ID"] = util.create_yaml_map(
-            **{
+        new_load["LOAD_WAREHOUSE_CONFIG_ID"] = {
                 "LOAD_WAREHOUSE_CONFIG_NAME": row["LOAD_WAREHOUSE_CONFIG_NAME"]
-            }
-        )
+        }
         loads.append(new_load)
 
     return loads
@@ -419,22 +404,20 @@ def create_data_object_data_objects(data):
     dodos = []
     for row in data["dag_details"]:
         new_dodo = ordereddict()
-        new_dodo["LOAD_ID"] = util.create_yaml_map(
-            **util.build_dict_value_from_keys(
+        new_dodo["LOAD_ID"] = util.build_dict_value_from_keys(
                 row, ["LOAD_NAME"]
-            )
         )
         src_data_object_name = row["DATA_OBJECT_NAME"]
         src_data_object_tgt_db_name = row["TGT_DB_NAME"]
 
-        new_dodo["LOAD_TARGET_DATA_OBJECT_ID"] = util.create_yaml_map(
-            DATA_OBJECT_NAME=src_data_object_name,
-            TGT_DB_NAME=src_data_object_tgt_db_name.replace("cds", "fds")
-        )
-        new_dodo["LOAD_SOURCE_DATA_OBJECT_ID"] = util.create_yaml_map(
-            DATA_OBJECT_NAME=src_data_object_name,
-            TGT_DB_NAME=src_data_object_tgt_db_name
-        )
+        new_dodo["LOAD_TARGET_DATA_OBJECT_ID"] = {
+            "DATA_OBJECT_NAME": src_data_object_name,
+            "TGT_DB_NAME": src_data_object_tgt_db_name.replace("cds", "fds")
+        }
+        new_dodo["LOAD_SOURCE_DATA_OBJECT_ID"] = {
+            "DATA_OBJECT_NAME": src_data_object_name,
+            "TGT_DB_NAME": src_data_object_tgt_db_name,
+        }
         new_dodo["LOAD_DEPENDENCY_TYPE"] = "Hard"
         dodos.append(new_dodo)
     return dodos

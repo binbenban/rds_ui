@@ -1,6 +1,7 @@
 import oyaml as yaml
 import os
-import ruamel.yaml
+from ruamel.yaml.comments import CommentedMap as ordereddict
+from ruamel.yaml.scalarstring import SingleQuotedScalarString as sq
 import typing
 
 
@@ -37,34 +38,32 @@ def metadata_path() -> str:
     return res
 
 
-def quote_yaml_element(s: any) -> any:
-    if isinstance(s, str) and not s.isnumeric():
-        return ruamel.yaml.scalarstring.SingleQuotedScalarString(s)
-    else:
-        return s
-
-
-# create an ordereddict which prints on one line
-def create_yaml_map(**m):
-    ret = ruamel.yaml.comments.CommentedMap(m)
-    ret.fa.set_flow_style()
-    return ret
+def single_quote(e: any, int_fields: list) -> any:
+    # max 2 layers
+    if isinstance(e, str):
+        return sq(e)
+    res = ordereddict()
+    for k1, v1 in e.items():
+        if isinstance(v1, dict):
+            # break up v1
+            temp1 = ordereddict()
+            for k2, v2 in v1.items():
+                if k2 in int_fields:
+                    temp1[sq(k2)] = v2
+                else:
+                    temp1[sq(k2)] = sq(v2)
+            temp1.fa.set_flow_style()  # one line
+            res[k1] = temp1
+        else:
+            if k1 in int_fields:
+                res[k1] = v1
+            else:
+                res[k1] = sq(v1)
+    return res
 
 
 def build_dict_value_from_keys(items: dict, keys: typing.List[str]) -> dict:
     return {k: items[k] for k in keys}
-
-
-# 1 level only
-def flatten_dict(d):
-    res = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            for ks, vs, in v.items():
-                res[ks] = vs
-        else:
-            res[k] = v
-    return res
 
 
 def copy_keys(keys: dict, source_dict, target_dict):

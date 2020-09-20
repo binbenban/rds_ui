@@ -40,11 +40,12 @@ def reader_instance():
 
 
 class Table:
-    def __init__(self, table_name: str, keys: List[str]):
+    def __init__(self, table_name: str, keys: List[str], int_fields=[]):
         self.table_name = table_name
         self.keys = keys
         self.from_yaml = None
         self.entries = None
+        self.int_fields = int_fields
         self.refresh()
 
     def refresh(self):
@@ -172,6 +173,7 @@ class Table:
             for k in e.keys():
                 if "ZZ_" in k:
                     del temp_e[k]
+            temp_e = util.single_quote(temp_e, self.int_fields)
             res.append(temp_e)
 
         filepath = os.path.join(
@@ -259,9 +261,14 @@ class Reader:
         self.data_objects = Table(
             "data_object", ["DATA_OBJECT_NAME", "TGT_DB_NAME"])
         self.feed_attributes = FeedAttributes(
-            "feed_attribute", ["FEED_ID", "ATTRIBUTE_NAME"])
+            "feed_attribute", ["FEED_ID", "ATTRIBUTE_NAME"], 
+            [
+                "ATTRIBUTE_NO", "ATTRIBUTE_LENGTH",
+                "ATTRIBUTE_PRECISION", "NESTED_LEVEL"
+            ])
         self.data_object_attributes = DataObjectAttributes(
-            "data_object_attribute", ["DATA_OBJECT_ID", "ATTRIBUTE_NAME"])
+            "data_object_attribute", ["DATA_OBJECT_ID", "ATTRIBUTE_NAME"],
+            ["ATTRIBUTE_NO"])
         self.feed_attr_data_object_attr = FeedAttrDataObjectAttrs(
             "feed_attr_data_object_attr",
             ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"])
