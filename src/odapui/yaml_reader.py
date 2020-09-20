@@ -32,13 +32,6 @@ def read_metadata_yaml(table_name: str) -> dict:
     return feed
 
 
-def reader_instance():
-    global reader
-    if not reader:
-        reader = Reader()
-    return reader
-
-
 class Table:
     def __init__(self, table_name: str, keys: List[str]):
         self.table_name = table_name
@@ -243,14 +236,20 @@ class FeedAttrDataObjectAttrs(Table):
 
 
 class Reader:
+    __instance__ = None
+
     def __init__(self):
-        self.feeds = None
-        self.data_objects = None
-        self.feed_attributes = None
-        self.data_object_attributes = None
-        self.feed_attr_data_object_attr = None
-        self.feed_data_objects = None
-        self.refresh()
+        if Reader.__instance__ is None:
+            self.feeds = None
+            self.data_objects = None
+            self.feed_attributes = None
+            self.data_object_attributes = None
+            self.feed_attr_data_object_attr = None
+            self.feed_data_objects = None
+            self.refresh()
+            Reader.__instance__ = self
+        else:
+            print("You cannot create another Singleton instance")
 
     def refresh(self, force=True):
         print(f"start refreshing all yamls...{arrow.now()}")
@@ -271,5 +270,11 @@ class Reader:
         self.loads = Table("load", ["LOAD_NAME"])
         self.data_object_data_objects = Table(
             "data_object_data_object", ["LOAD_ID"])
-
         print(f"finished refreshing all yamls...{arrow.now()}")
+
+    @staticmethod
+    def get_instance():
+        if not Reader.__instance__:
+            print("initialising instance")
+            Reader()
+        return Reader.__instance__

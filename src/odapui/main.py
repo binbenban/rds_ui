@@ -6,7 +6,7 @@ from schema import Schema, And, Use, Optional, Or
 
 
 app = Flask(__name__)
-rd = yaml_reader.reader_instance()
+rd = yaml_reader.Reader.get_instance()
 
 
 @app.route("/feed")
@@ -74,7 +74,7 @@ def read_one_data_object_attribute(data_object_id, attribute_name):
 @app.route("/map_feed_attr_data_object_attr/<feed_id>/<data_object_id>")
 def map_feed_attr_data_object_attr(feed_id, data_object_id):
     res = yp.map_feed_attr_data_object_attr(
-        eval(feed_id), eval(data_object_id)
+        rd, eval(feed_id), eval(data_object_id)
     )
     schema = Schema([
         {
@@ -108,7 +108,7 @@ def read_table_transformation(
     feed_id, data_object_id
 ):
     res = yp.read_table_transformation(
-        eval(feed_id), eval(data_object_id)
+        rd, eval(feed_id), eval(data_object_id)
     )
     schema = Schema(
         {
@@ -151,7 +151,7 @@ def save_feed(feed_id):
     )
     schema.validate(request.json)
     app.logger.info("feed attr schema validated")
-    yp.save_feed(feed_id, request.json)
+    yp.save_feed(rd, feed_id, request.json)
     return {"msg": "updated temp_feed.yaml, temp_feed_attribute.yaml"}
 
 
@@ -177,7 +177,7 @@ def save_data_object(data_object_id):
         }, ignore_extra_keys=True
     )
     schema.validate(request.json)
-    yp.save_data_object(data_object_id, request.json)
+    yp.save_data_object(rd, data_object_id, request.json)
     return {
         "msg":
         "updated temp_data_objects.yaml, temp_data_objects_attributes.yaml"
@@ -212,7 +212,9 @@ def save_transformation(feed_id, data_object_id):
         }, ignore_extra_keys=True
     )
     schema.validate(request.json)
-    yp.save_transformation(eval(feed_id), eval(data_object_id), request.json)
+    yp.save_transformation(
+        rd, eval(feed_id), eval(data_object_id), request.json
+    )
     return {
         "msg": "updated feed_attr_data_object_attr.yaml"
     }
@@ -236,7 +238,7 @@ def read_one_dag(dag_id):
     )
     dag_id = eval(dag_id)
     schema.validate(dag_id)
-    res = yp.read_one_dag(dag_id)
+    res = yp.read_one_dag(rd, dag_id)
     return flask.jsonify(res)
 
 
@@ -266,7 +268,7 @@ def save_dag(dag_id):
         }, ignore_extra_keys=True
     )
     schema.validate(request.json)
-    yp.save_dag(dag_id, request.json)
+    yp.save_dag(rd, dag_id, request.json)
     return {
         "msg": "updated"
     }

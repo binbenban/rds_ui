@@ -1,12 +1,8 @@
 from odapui import util
-from odapui import yaml_reader
 from ruamel.yaml.comments import CommentedMap as ordereddict
 
 
-rd = yaml_reader.reader_instance()
-
-
-def map_feed_attr_data_object_attr(feed_id, data_object_id):
+def map_feed_attr_data_object_attr(rd, feed_id, data_object_id):
     feed_attrs = rd.feed_attributes.filter_entries(
         "FEED_ID", feed_id, "ATTRIBUTE_NO"
     )
@@ -95,7 +91,7 @@ def map_feed_attr_data_object_attr(feed_id, data_object_id):
 
 
 def read_table_transformation(
-    feed_id, data_object_id
+    rd, feed_id, data_object_id
 ):
     feeds = rd.feeds.filter_entries("ZZ_FEED_ID", feed_id)
     if not feeds:
@@ -120,7 +116,7 @@ def read_table_transformation(
     return res
 
 
-def save_feed(feed_id, data):
+def save_feed(rd, feed_id, data):
     if feed_id == "NEW_FEED":
         new_feed = {
             "SOURCE_SYSTEM": data.get("new_feed_sourcesystem"),
@@ -178,7 +174,7 @@ def create_feed_attributes(values: dict, data):
     return feed_attrs
 
 
-def save_data_object(data_object_id, data):
+def save_data_object(rd, data_object_id, data):
     if data_object_id == "NEW_DATA_OBJECT":
         new_data_object = {
             "DATA_OBJECT_NAME": data.get("new_data_object_name"),
@@ -230,7 +226,7 @@ def create_data_object_attributes(values: dict, data):
     return data_object_attrs
 
 
-def save_transformation(feed_id, data_object_id, data):
+def save_transformation(rd, feed_id, data_object_id, data):
     # feed_attr_data_object_attr
     rd.feed_attr_data_object_attr.delete_entries(
         [
@@ -312,7 +308,7 @@ def create_feed_attr_data_object_attrs(data):
     return res
 
 
-def read_one_dag(dag_id):
+def read_one_dag(rd, dag_id):
     # read loads of a dag - load.yaml
     # read data objects for all loads - data_object_data_object.yaml
     loads = rd.loads.filter_entries("DAG_ID", dag_id)
@@ -334,7 +330,7 @@ def read_one_dag(dag_id):
     return res
 
 
-def save_dag(dag_id, data):
+def save_dag(rd, dag_id, data):
     dodos = create_data_object_data_objects(data)
 
     if dag_id == "NEW_DAG":

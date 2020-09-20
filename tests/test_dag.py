@@ -40,7 +40,7 @@ def save_dag_data():
 
 
 def test_save_dag_new(save_dag_data):
-    rd = yaml_reader.reader_instance()
+    rd = yaml_reader.Reader.get_instance()
     rd.refresh()
     dags_count_before = len(rd.dags.entries)
     loads_count_before = len(rd.loads.entries)
@@ -69,7 +69,7 @@ def test_save_dag_new(save_dag_data):
 
 
 def test_save_dag_update(save_dag_data):
-    rd = yaml_reader.reader_instance()
+    rd = yaml_reader.Reader.get_instance()
     rd.refresh()
     dag_id = {
         "DAG_NAME": "live_ingest_pim_products"
