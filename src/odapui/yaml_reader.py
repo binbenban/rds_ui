@@ -33,12 +33,16 @@ def read_metadata_yaml(table_name: str) -> dict:
 
 
 class Table:
-    def __init__(self, table_name: str, keys: List[str], int_fields=[]):
+    def __init__(
+        self, table_name: str, keys: List[str],
+        no_quote_fields=[], double_quote_fields=[]
+    ):
         self.table_name = table_name
         self.keys = keys
         self.from_yaml = None
         self.entries = None
-        self.int_fields = int_fields
+        self.no_quote_fields = no_quote_fields
+        self.double_quote_fields = double_quote_fields
         self.refresh()
 
     def refresh(self):
@@ -166,7 +170,9 @@ class Table:
             for k in e.keys():
                 if "ZZ_" in k:
                     del temp_e[k]
-            temp_e = util.single_quote(temp_e, self.int_fields)
+            temp_e = util.format_entry(
+                temp_e, self.no_quote_fields, self.double_quote_fields
+            )
             res.append(temp_e)
 
         filepath = os.path.join(
@@ -263,8 +269,8 @@ class Reader:
         self.data_objects = Table(
             "data_object", ["DATA_OBJECT_NAME", "TGT_DB_NAME"])
         self.feed_attributes = FeedAttributes(
-            "feed_attribute", ["FEED_ID", "ATTRIBUTE_NAME"], 
-            [
+            "feed_attribute", ["FEED_ID", "ATTRIBUTE_NAME"],
+            no_quote_fields=[
                 "ATTRIBUTE_NO", "ATTRIBUTE_LENGTH",
                 "ATTRIBUTE_PRECISION", "NESTED_LEVEL"
             ])
@@ -273,7 +279,8 @@ class Reader:
             ["ATTRIBUTE_NO"])
         self.feed_attr_data_object_attr = FeedAttrDataObjectAttrs(
             "feed_attr_data_object_attr",
-            ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"])
+            ["FEED_ATTRIBUTE_ID", "DATA_OBJECT_ATTRIBUTE_ID"],
+            double_quote_fields=["TRANSFORM_FN"])
         self.feed_data_objects = Table(
             "feed_data_object", ["FEED_ID", "DATA_OBJECT_ID"])
         self.dags = Table("dag", ["DAG_NAME"])
