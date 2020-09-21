@@ -253,6 +253,9 @@ class Reader:
         else:
             print("You cannot create another Singleton instance")
 
+    def __getattr__(self, name):
+        return getattr(Reader.__instance__, name)
+
     def refresh(self, force=True):
         print(f"start refreshing all yamls...{arrow.now()}")
 

@@ -1,8 +1,12 @@
 from odapui import yaml_processor as yp
+from odapui import yaml_reader
+
+
+rd = yaml_reader.Reader.get_instance()
 
 
 def test_read_feed_attr_data_object_attr_1():
-    rd = yaml_reader.Reader.get_instance()
+    # rd.refresh()
     feed_id = {
         "SOURCE_SYSTEM": "aa",
         "FEED_NAME": "browser"
@@ -20,7 +24,7 @@ def test_read_feed_attr_data_object_attr_1():
 
 
 def test_read_feed_attr_data_object_attr_2():
-    rd = yaml_reader.Reader.get_instance()
+    # rd.refresh()
     feed_id = {
         "SOURCE_SYSTEM": "zzz",
         "FEED_NAME": "browser"

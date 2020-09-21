@@ -3,10 +3,16 @@ from odapui import yaml_reader
 import pytest
 
 
+rd = yaml_reader.Reader.get_instance()
+
+
 def test_read_dag():
-    res = yp.read_one_dag({
-        "DAG_NAME": "live_ingest_switch"
-    })
+    res = yp.read_one_dag(
+        rd,
+        {
+            "DAG_NAME": "live_ingest_switch"
+        }
+    )
     assert len(res) == 2
     assert res[0]["DAG_ID"]["DAG_NAME"] == "live_ingest_switch"
     assert all([x["DAG_ID"] for x in res])
@@ -40,12 +46,11 @@ def save_dag_data():
 
 
 def test_save_dag_new(save_dag_data):
-    rd = yaml_reader.Reader.get_instance()
-    rd.refresh()
+    # rd.refresh()
     dags_count_before = len(rd.dags.entries)
     loads_count_before = len(rd.loads.entries)
     dodos_count_before = len(rd.data_object_data_objects.entries)
-    yp.save_dag("NEW_DAG", save_dag_data)
+    yp.save_dag(rd, "NEW_DAG", save_dag_data)
     assert len(rd.dags.entries) == dags_count_before + 1
     assert rd.dags.filter_entries("DAG_NAME", "test_dag_new")
     assert len(rd.loads.entries) == loads_count_before + 1
@@ -69,8 +74,10 @@ def test_save_dag_new(save_dag_data):
 
 
 def test_save_dag_update(save_dag_data):
-    rd = yaml_reader.Reader.get_instance()
-    rd.refresh()
+    rd.dags.refresh()
+    rd.loads.refresh()
+    rd.data_object_data_objects.refresh()
+
     dag_id = {
         "DAG_NAME": "live_ingest_pim_products"
     }
@@ -84,7 +91,7 @@ def test_save_dag_update(save_dag_data):
     all_dodos_count = len(rd.data_object_data_objects.entries)
 
     # update dag and stuff
-    yp.save_dag(str(dag_id), save_dag_data)
+    yp.save_dag(rd, str(dag_id), save_dag_data)
 
     # expect dag count = 1
     dags = rd.dags.filter_entries("DAG_NAME", "live_ingest_pim_products") 

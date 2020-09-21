@@ -53,12 +53,15 @@ def single_quote(e: any, int_fields: list) -> any:
                 else:
                     temp1[sq(k2)] = sq(v2)
             temp1.fa.set_flow_style()  # one line
+            if isinstance(v1, ordereddict):
+                temp1.ca.comment = v1.ca.comment
             res[k1] = temp1
         else:
             if k1 in int_fields:
                 res[k1] = v1
             else:
                 res[k1] = sq(v1)
+    res.ca.comment = e.ca.comment  # preserve comments
     return res
 
 
