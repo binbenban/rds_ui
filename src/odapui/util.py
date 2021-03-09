@@ -70,7 +70,8 @@ def format_entry(
                 res[k1] = dq(v1)
             else:
                 res[k1] = sq(v1)
-    res.ca.comment = e.ca.comment  # preserve comments
+    # print(e)
+    # res.ca.comment = e.ca.comment  # preserve comments
     return res
 
 

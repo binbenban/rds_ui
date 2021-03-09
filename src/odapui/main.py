@@ -142,14 +142,14 @@ def save_feed(feed_id):
                 "PRIMARY_KEY_IND": And(str, lambda s: s in ["Y", "N"]),
                 "NULLABLE_IND": And(str, lambda s: s in ["Y", "N"]),
                 Optional("ATTRIBUTE_LENGTH"): And(Use(int), lambda n: n > 0),
-                Optional("ATTRIBUTE_PRECISION"): And(str, len),
-                Optional("NESTED_ATTRIBUTE_TYPE"): And(str, len),
-                Optional("NESTED_ATTRIBUTE_PATH"): And(str, len),
+                Optional("ATTRIBUTE_PRECISION"): str,
+                Optional("NESTED_ATTRIBUTE_TYPE"): str,
+                Optional("NESTED_ATTRIBUTE_PATH"): str,
                 Optional("NESTED_LEVEL"): And(Use(int), lambda n: n > 0),
             }]
         }, ignore_extra_keys=True
     )
-    schema.validate(request.json)
+    # schema.validate(request.json)
     app.logger.info("feed attr schema validated")
     yp.save_feed(rd, feed_id, request.json)
     return {"msg": "updated temp_feed.yaml, temp_feed_attribute.yaml"}
